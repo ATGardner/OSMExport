@@ -1,3 +1,4 @@
+'use strict';
 let _ = require('lodash'),
     moment = require('moment'),
     fs = require('fs');
