@@ -53,7 +53,7 @@ function removeOldFiles() {
                     let path = `cache/${f}`;
                     return stat(path)
                         .then(stat => {
-                            if (now.diff(stat.birthtime, 'seconds') > 5) {
+                            if (now.diff(stat.birthtime, 'days') > 1) {
                                 return unlink(path);
                             }
                         });

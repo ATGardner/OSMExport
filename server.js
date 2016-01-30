@@ -29,27 +29,10 @@ app.get('/osm2gpx', function (req, res) {
             });
 });
 
-//app.get('/', function (req, res) {
-//    res.send('Hello World from express!');
-//});
-//
-//app.listen(process.env.PORT || 3000, function () {
-//    console.log(`Example app listening on port ${process.env.PORT || 3000}!`);
-//});
 
-console.log('before init');
 cache.init()
     .then(() => {
-        console.log('before listen');
         app.listen(process.env.PORT || 1337, function () {
             console.log(`Example app listening on port ${process.env.PORT || 1337}!`);
         });
-        console.log('after listen');
     });
-
-//var http = require('http');
-//var port = process.env.PORT || 1337;
-//http.createServer(function(req, res) {
-//    res.writeHead(200, { 'Content-Type': 'text/plain' });
-//    res.end('Hello World\n');
-//}).listen(port);
