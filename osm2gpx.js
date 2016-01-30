@@ -23,7 +23,7 @@ function parseData(xml) {
 }
 
 function transformTags(tags) {
-    return _.transform(tags, (result, t) => {
+    return _.transform(tags || [], (result, t) => {
         result[t.$.k] = t.$.v;
     }, {});
 }
@@ -39,7 +39,8 @@ function buildJson(xmlObj) {
                 return {
                     id: $.id,
                     lat: $.lat,
-                    lon: $.lon
+                    lon: $.lon,
+                    tags: transformTags(n.tag)
                 };
             })
             .keyBy('id')
@@ -70,7 +71,8 @@ function writeOsmNode(builder, node) {
     console.log(`Adding node ${node.id}`);
     builder.addWayPoints({
         latitude: node.lat,
-        longitude: node.lon
+        longitude: node.lon,
+        name: node.tags.name
     });
 }
 

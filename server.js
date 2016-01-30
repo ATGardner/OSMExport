@@ -18,9 +18,6 @@ app.get('/osm2gpx', function (req, res) {
         })
         .then(path => {
                 res.download(path);
-                //res.writeHead(200, {'Content-Type': 'text/xml'});
-                //res.write(xml);
-                //res.end();
             },
             error => {
                 res.writeHead(200, {'Content-Type': 'text/plain'});
