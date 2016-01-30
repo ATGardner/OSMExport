@@ -8,7 +8,9 @@ let express = require('express'),
 //5775913
 //282071
 app.get('/osm2gpx', function (req, res) {
+    console.log('Got a req');
     let relationId = req.query.relationId;
+    console.log(`Relation Id is ${relationId}`);
     cache.get(relationId)
         .catch(() => {
             return osm2gpx(relationId)
