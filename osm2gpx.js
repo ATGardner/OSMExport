@@ -70,8 +70,7 @@ function writeOsmNode(builder, node) {
     console.log(`Adding node ${node.id}`);
     builder.addWayPoints({
         latitude: node.lat,
-        longitude: node.lon,
-        name: node.id
+        longitude: node.lon
     });
 }
 
@@ -80,15 +79,14 @@ function writeOsmWay(builder, way, nodes) {
         let node = nodes[nodeId];
         return {
             latitude: node.lat,
-            longitude: node.lon,
-            name: node.id
+            longitude: node.lon
         };
     });
     console.log(`Adding way ${way.tags.name || way.id}`);
-    builder.addRoute({
+    builder.addTrack({
         name: way.tags.name || way.id,
         time: way.timestamp
-    }, points);
+    }, [points]);
 }
 
 function createGpx(json) {
@@ -97,6 +95,7 @@ function createGpx(json) {
     let relation = json.relation;
     let tags = relation.tags;
     builder.setFileInfo({
+        description: 'Data extracted from OSM',
         name: tags.name || relation.id,
         creator: 'OpenStreetMap relation export',
         time: relation.timestamp
