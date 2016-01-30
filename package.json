@@ -1,0 +1,21 @@
+{
+  "name": "osm-gpx",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {},
+  "dependencies": {
+    "express": "^4.13.4",
+    "gpx": "git+https://github.com/kchapelier/gpx.git",
+    "lodash": "^4.0.1",
+    "moment": "^2.11.1",
+    "node-fetch": "^1.3.3",
+    "xml-parser": "^1.2.1",
+    "xml2js": "^0.4.16"
+  }
+}
