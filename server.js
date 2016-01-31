@@ -12,27 +12,28 @@ app.get('/osm2gpx', function (req, res) {
     let visitor = ua('UA-18054605-12'),
         relationId = req.query.relationId;
     visitor.event({
-        eventCategory: `OSM2GPX`,
-        eventAction: `Get`,
-        eventLabel: relationId
+        ec: `OSM2GPX`,
+        ea: `Get`,
+        el: relationId,
+        aip: true
     }).send();
     cache.get(relationId)
         .catch(() => {
             visitor.event({
-                eventCategory: `OSM2GPX`,
-                eventAction: `Cache miss`,
-                eventLabel: relationId,
-                anonymizeIp: true
+                ec: `OSM2GPX`,
+                ea: `Cache miss`,
+                el: relationId,
+                aip: true
             }).send();
             return osm2gpx(relationId)
                 .then(xml => cache.put(relationId, xml));
         })
         .then(path => {
                 visitor.exception({
-                    eventCategory: `OSM2GPX`,
-                    eventAction: `Download`,
-                    eventLabel: relationId,
-                    anonymizeIp: true
+                    ec: `OSM2GPX`,
+                    ea: `Download`,
+                    el: relationId,
+                    aip: true
                 }).send();
                 res.download(path);
             },
@@ -40,8 +41,9 @@ app.get('/osm2gpx', function (req, res) {
                 visitor.event({
                     exceptionDescription: error,
                     isExceptionFatal: true,
-                    anonymizeIp: true
+                    aip: true
                 }).send();
+                console.error(error);
                 res.writeHead(200, {'Content-Type': 'text/plain'});
                 res.write(error);
                 res.end();
