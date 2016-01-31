@@ -6,7 +6,13 @@ function fetchRelation(relationId) {
     let url = `http://api.openstreetmap.org/api/0.6/relation/${relationId}/full`;
     console.log(`Getting relation ${relationId}`);
     return fetch(url)
-        .then(response => response.text());
+        .then(res => {
+            if (!res.ok) {
+                throw `Failed getting relation '${relationId}'`;
+            }
+
+            return res.text();
+        });
 }
 
 function parseData(xml) {
@@ -119,14 +125,10 @@ function createGpx(json) {
 }
 
 function getRelation(relationId) {
-    try {
-        return fetchRelation(relationId)
-            .then(parseData)
-            .then(buildJson)
-            .then(createGpx);
-    } catch (e) {
-        console.error(e);
-    }
+    return fetchRelation(relationId)
+        .then(parseData)
+        .then(buildJson)
+        .then(createGpx);
 }
 
 module.exports = getRelation;
