@@ -1,7 +1,7 @@
 'use strict';
 let express = require('express'),
     app = express(),
-    ua = require('universal-analytics'),
+    Analytics = require('./analytics'),
     cache = require('./cache'),
     osm2gpx = require('./osm2gpx');
 
@@ -9,40 +9,21 @@ let express = require('express'),
 //5775913
 //282071
 app.get('/osm2gpx', function (req, res) {
-    let visitor = ua('UA-18054605-12'),
+    let analytics = new Analytics(),
         relationId = req.query.relationId;
-    visitor.event({
-        ec: `OSM2GPX`,
-        ea: `Get`,
-        el: relationId,
-        aip: true
-    }).send();
+    analytics.sendEvent(`Get`, relationId);
     cache.get(relationId)
         .catch(() => {
-            visitor.event({
-                ec: `OSM2GPX`,
-                ea: `Cache miss`,
-                el: relationId,
-                aip: true
-            }).send();
+            analytics.sendEvent(`Cache miss`, relationId);
             return osm2gpx(relationId)
                 .then(gpx => cache.put(gpx));
         })
         .then(path => {
-                visitor.exception({
-                    ec: `OSM2GPX`,
-                    ea: `Download`,
-                    el: relationId,
-                    aip: true
-                }).send();
+                analytics.sendEvent(`Download`, relationId);
                 res.download(path);
             },
             error => {
-                visitor.event({
-                    exceptionDescription: error,
-                    isExceptionFatal: true,
-                    aip: true
-                }).send();
+                analytics.sendException(error);
                 console.error(error);
                 res.writeHead(200, {'Content-Type': 'text/plain'});
                 res.write(error);
