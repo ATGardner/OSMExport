@@ -26,7 +26,7 @@ app.get('/osm2gpx', function (req, res) {
                 aip: true
             }).send();
             return osm2gpx(relationId)
-                .then(xml => cache.put(relationId, xml));
+                .then(gpx => cache.put(gpx));
         })
         .then(path => {
                 visitor.exception({

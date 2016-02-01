@@ -1,7 +1,9 @@
 'use strict';
 let _ = require('lodash'),
+    fs = require('fs'),
     moment = require('moment'),
-    fs = require('fs');
+    path = require('path'),
+    sanitize = require('sanitize-filename');
 
 function readdir(path) {
     console.log(`Reading dir '${path}'`);
@@ -45,27 +47,37 @@ function unlink(path) {
     });
 }
 
+function removeOldRelationFiles(relationId) {
+    let relationDir = path.join('cache', relationId);
+    return readdir(relationDir)
+        .then(files => {
+            if (_.isEmpty(files)) {
+                return;
+            }
+
+            let fileName = path.join(relationDir, files[0]);
+            return stat(fileName)
+                .then(stat => {
+                    if (moment().diff(stat.birthtime, 'seconds') > 1) {
+                        return unlink(fileName)
+                            .then(() => rmdir(relationDir));
+                    }
+                })
+        });
+}
+
 function removeOldFiles() {
     return readdir('cache')
-        .then(files => {
-            let now = moment(),
-                promises = _.map(files, f => {
-                    let path = `cache/${f}`;
-                    return stat(path)
-                        .then(stat => {
-                            if (now.diff(stat.birthtime, 'days') > 1) {
-                                return unlink(path);
-                            }
-                        });
-                });
+        .then(relationDirs => {
+            let promises = _.map(relationDirs, removeOldRelationFiles);
             return Promise.all(promises);
         });
 }
 
-function exists(path) {
+function exists(dir) {
     return new Promise((resolve, reject) => {
-        console.log(`Checking if '${path}' exists`);
-        fs.exists(path, exists => {
+        console.log(`Checking if '${dir}' exists`);
+        fs.exists(dir, exists => {
             console.log(`Result: ${exists}`);
             if (exists) {
                 resolve();
@@ -76,11 +88,11 @@ function exists(path) {
     });
 }
 
-function mkdir(path) {
+function mkdir(dir) {
     return new Promise((resolve, reject) => {
-        console.log(`Making directory '${path}'`);
-        fs.mkdir(path, err => {
-            if (err) {
+        console.log(`Making directory '${dir}'`);
+        fs.mkdir(dir, err => {
+            if (err && err.code !== 'EEXIST') {
                 console.error(`Failed making directory, error: ${err}`);
                 reject(err);
             } else {
@@ -90,9 +102,23 @@ function mkdir(path) {
     });
 }
 
-function writeFile(path, data) {
-    console.log(`Writing file, path: '${path}'`);
+function rmdir(dir) {
     return new Promise((resolve, reject) => {
+        console.log(`Removing directory '${dir}'`);
+        fs.rmdir(dir, err => {
+            if (err) {
+                console.error(`Failed removing directory, error: ${err}`);
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+function writeFile(path, data) {
+    return new Promise((resolve, reject) => {
+        console.log(`Writing file, path: '${path}'`);
         fs.writeFile(path, data, err => {
             if (err) {
                 console.error(`Failed writing file, error: ${err}`);
@@ -105,23 +131,31 @@ function writeFile(path, data) {
 }
 
 function init() {
-    let path = 'cache';
-    return exists(path)
-        .catch(() => mkdir(path));
+    let cacheDir = 'cache';
+    return exists(cacheDir)
+        .catch(() => mkdir(cacheDir));
 }
 
 function get(relationId) {
-    let path = `cache/${relationId}.gpx`;
+    let relationDir = path.join('cache', relationId);
     return removeOldFiles()
-        .then(() => exists(path))
-        .then(() => path);
+        .then(() => exists(relationDir))
+        .then(() => readdir(relationDir))
+        .then(files => {
+            if (_.isEmpty(files)) {
+                return Promise.reject();
+            }
+
+            return path.join(relationDir, files[0]);
+        });
 }
 
-
-function put(relationId, xml) {
-    let path = `cache/${relationId}.gpx`;
-    return writeFile(path, xml)
-        .then(() => path);
+function put(gpx) {
+    let relationDir = path.join('cache', gpx.relationId),
+        fileName = path.join(relationDir, `${sanitize(gpx.name)}-${moment(gpx.time).format('YY-MM-DD')}.gpx`);
+    return mkdir(relationDir)
+        .then(() => writeFile(fileName, gpx.xml))
+        .then(() => fileName);
 }
 
 module.exports = {

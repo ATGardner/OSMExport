@@ -98,13 +98,14 @@ function writeOsmWay(builder, way, nodes) {
 }
 
 function createGpx(json) {
-    let GpxFileBuilder = require('gpx').GpxFileBuilder;
-    let builder = new GpxFileBuilder();
-    let relation = json.relation;
-    let tags = relation.tags;
+    let GpxFileBuilder = require('gpx').GpxFileBuilder,
+        builder = new GpxFileBuilder(),
+        relation = json.relation,
+        tags = relation.tags,
+        name = tags.name || relation.id;
     builder.setFileInfo({
         description: 'Data extracted from OSM',
-        name: tags.name || relation.id,
+        name: name,
         creator: 'OpenStreetMap relation export',
         time: relation.timestamp
     });
@@ -121,7 +122,12 @@ function createGpx(json) {
         }
     }
 
-    return builder.xml();
+    return {
+        relationId: relation.id,
+        name: name,
+        time: relation.timestamp,
+        xml: builder.xml()
+    };
 }
 
 function getRelation(relationId) {
