@@ -1,5 +1,6 @@
 'use strict';
-let _ = require('lodash');
+let _ = require('lodash'),
+    osmApi = require('./osmApi');
 
 function fetchRelation(relationId) {
     let fetch = require('node-fetch');
@@ -131,10 +132,11 @@ function createGpx(json) {
 }
 
 function getRelation(relationId) {
-    return fetchRelation(relationId)
-        .then(parseData)
-        .then(buildJson)
-        .then(createGpx);
+    return osmApi.fetchRelation(relationId, true)
+        .then(xmlObj => {
+            let json = buildJson(xmlObj);
+            return createGpx(json);
+        });
 }
 
 module.exports = getRelation;
