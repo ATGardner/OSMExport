@@ -1,33 +1,8 @@
 'use strict';
 let _ = require('lodash'),
+    moment = require('moment'),
+    cache = require('./cache'),
     osmApi = require('./osmApi');
-
-function fetchRelation(relationId) {
-    let fetch = require('node-fetch');
-    let url = `http://api.openstreetmap.org/api/0.6/relation/${relationId}/full`;
-    console.log(`Getting relation ${relationId}`);
-    return fetch(url)
-        .then(res => {
-            if (!res.ok) {
-                throw `Failed getting relation '${relationId}'`;
-            }
-
-            return res.text();
-        });
-}
-
-function parseData(xml) {
-    let parseString = require('xml2js').parseString;
-    console.log('Done getting relation');
-    return new Promise((resolve, reject) => parseString(xml, (err, result) => {
-        if (err) {
-            console.error(`Failed getting relation, err: ${err}`);
-            reject(err);
-        } else {
-            resolve(result);
-        }
-    }));
-}
 
 function transformTags(tags) {
     return _.transform(tags || [], (result, t) => {
@@ -104,6 +79,7 @@ function createGpx(json) {
         relation = json.relation,
         tags = relation.tags,
         name = tags.name || relation.id;
+    console.log('Creating gpx from JSON');
     builder.setFileInfo({
         description: 'Data extracted from OSM',
         name: name,
@@ -126,12 +102,23 @@ function createGpx(json) {
     return {
         relationId: relation.id,
         name: name,
-        time: relation.timestamp,
+        timestamp: relation.timestamp,
         xml: builder.xml()
     };
 }
 
-function getRelation(relationId) {
+function getRelationTimestamp(relationId) {
+    console.log(`Getting timestamp for relation '${relationId}'`)
+    return osmApi.fetchRelation(relationId, false)
+        .then(xmlObj => {
+            let timestamp = moment(xmlObj.osm.relation[0].$.timestamp);
+            console.log(`Result: ${timestamp}`);
+            return timestamp;
+        });
+}
+
+function getFullRelation(relationId) {
+    console.log(`Getting full relation '${relationId}'`);
     return osmApi.fetchRelation(relationId, true)
         .then(xmlObj => {
             let json = buildJson(xmlObj);
@@ -139,4 +126,25 @@ function getRelation(relationId) {
         });
 }
 
-module.exports = getRelation;
+function getRelation(relationId) {
+    return cache.get(relationId)
+        .then(cacheData => {
+            return getRelationTimestamp(relationId)
+                .then(osmTimestamp => {
+                    if (osmTimestamp.isAfter(cacheData.timestamp)) {
+                        return Promise.reject();
+                    }
+
+                    return cacheData.fileName;
+                });
+        })
+        .catch(() => {
+            console.log(`Cache miss for relation '${relationId}'`);
+            return getFullRelation(relationId)
+                .then(gpx => cache.put(gpx));
+        });
+}
+
+module.exports = {
+    getRelation: getRelation
+};

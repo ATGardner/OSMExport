@@ -12,12 +12,7 @@ app.get('/osm2gpx', function (req, res) {
     let analytics = new Analytics(),
         relationId = req.query.relationId;
     analytics.sendEvent(`Get`, relationId);
-    cache.get(relationId)
-        .catch(() => {
-            analytics.sendEvent(`Cache miss`, relationId);
-            return osm2gpx(relationId)
-                .then(gpx => cache.put(gpx));
-        })
+    return osm2gpx.getRelation(relationId)
         .then(path => {
                 analytics.sendEvent(`Download`, relationId);
                 res.download(path);

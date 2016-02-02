@@ -3,7 +3,8 @@ let _ = require('lodash'),
     fs = require('fs'),
     moment = require('moment'),
     path = require('path'),
-    sanitize = require('sanitize-filename');
+    sanitize = require('sanitize-filename'),
+    schedule = require('node-schedule');
 
 function readdir(path) {
     console.log(`Reading dir '${path}'`);
@@ -52,13 +53,13 @@ function removeOldRelationFiles(relationId) {
     return readdir(relationDir)
         .then(files => {
             if (_.isEmpty(files)) {
-                return;
+                return rmdir(relationDir);
             }
 
             let fileName = path.join(relationDir, files[0]);
             return stat(fileName)
                 .then(stat => {
-                    if (moment().diff(stat.birthtime, 'seconds') > 1) {
+                    if (moment().diff(stat.birthtime, 'weeks') > 1) {
                         return unlink(fileName)
                             .then(() => rmdir(relationDir));
                     }
@@ -67,11 +68,16 @@ function removeOldRelationFiles(relationId) {
 }
 
 function removeOldFiles() {
+    console.log('Removing old files');
     return readdir('cache')
         .then(relationDirs => {
             let promises = _.map(relationDirs, removeOldRelationFiles);
             return Promise.all(promises);
         });
+}
+
+function scheduleCleanup() {
+    schedule.scheduleJob('0 0 * * * *', removeOldFiles);
 }
 
 function exists(dir) {
@@ -133,26 +139,33 @@ function writeFile(path, data) {
 function init() {
     let cacheDir = 'cache';
     return exists(cacheDir)
-        .catch(() => mkdir(cacheDir));
+        .catch(() => mkdir(cacheDir))
+        .then(() => scheduleCleanup());
 }
 
 function get(relationId) {
     let relationDir = path.join('cache', relationId);
-    return removeOldFiles()
-        .then(() => exists(relationDir))
+    return exists(relationDir)
         .then(() => readdir(relationDir))
         .then(files => {
             if (_.isEmpty(files)) {
                 return Promise.reject();
             }
 
-            return path.join(relationDir, files[0]);
+            let fileName = path.join(relationDir, files[0]);
+            return stat(fileName)
+                .then(stat => {
+                    return {
+                        fileName: fileName,
+                        timestamp: stat.birthtime
+                    };
+                });
         });
 }
 
 function put(gpx) {
     let relationDir = path.join('cache', gpx.relationId),
-        fileName = path.join(relationDir, `${sanitize(gpx.name)}-${moment(gpx.time).format('YY-MM-DD')}.gpx`);
+        fileName = path.join(relationDir, `${sanitize(gpx.name)}-${moment(gpx.timestamp).format('YY-MM-DD')}.gpx`);
     return mkdir(relationDir)
         .then(() => writeFile(fileName, gpx.xml))
         .then(() => fileName);

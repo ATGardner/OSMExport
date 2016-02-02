@@ -27,7 +27,6 @@ function request(url) {
 
 function fetchRelation(relationId, full) {
     let url = `http://api.openstreetmap.org/api/0.6/relation/${relationId}${full ? '/full' : ''}`;
-    console.log(`Getting relation ${relationId}`);
     return request(url);
 }
 
