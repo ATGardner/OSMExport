@@ -4,6 +4,24 @@ let _ = require('lodash'),
     cache = require('./cache'),
     osmApi = require('./osmApi');
 
+function sendEvent(visitor, action, label) {
+    visitor.event({
+        ec: `OSM2GPX`,
+        ea: action,
+        el: label,
+        aip: true
+    }).send();
+}
+
+function sendTiming(visitor, variable, time) {
+    visitor.timing({
+        utc: `OSM2GPX`,
+        utv: variable,
+        utt: time,
+        aip: true
+    }).send();
+}
+
 function transformTags(tags) {
     return _.transform(tags || [], (result, t) => {
         result[t.$.k] = t.$.v;
@@ -126,23 +144,46 @@ function getFullRelation(relationId) {
         });
 }
 
-function getRelation(relationId) {
-    return cache.get(relationId)
-        .then(cacheData => {
-            return getRelationTimestamp(relationId)
-                .then(osmTimestamp => {
-                    if (osmTimestamp.isAfter(cacheData.timestamp)) {
-                        return Promise.reject();
-                    }
+function getFromCache(relationId) {
+    const cacheData = cache.get(relationId);
+    if (cacheData) {
+        return getRelationTimestamp(relationId)
+            .then(osmTimestamp => {
+                if (osmTimestamp.isAfter(cacheData.timestamp)) {
+                    return Promise.reject();
+                }
 
-                    return cacheData.fileName;
-                });
-        })
-        .catch(() => {
-            console.log(`Cache miss for relation '${relationId}'`);
-            return getFullRelation(relationId)
-                .then(gpx => cache.put(gpx));
-        });
+                return cacheData.fileName;
+            });
+    } else {
+        return Promise.reject();
+    }
+}
+
+function getRelation(visitor, relationId) {
+    sendEvent(visitor, 'Get', relationId);
+    const start = moment();
+    return getFromCache(relationId)
+        .then(fileName => {
+                sendEvent(visitor, 'Cache hit', relationId);
+                return fileName;
+            },
+            () => {
+                sendEvent(visitor, 'Cache miss', relationId);
+
+                return getFullRelation(relationId)
+                    .then(gpx => cache.put(gpx));
+            })
+        .then(fileName => {
+                const end = moment().diff(start);
+                sendTiming(visitor, 'getRelationTime', end);
+                return fileName;
+            },
+            error => {
+                const end = moment().diff(start);
+                sendTiming(visitor, 'failureTime', end);
+                sendEvent(visitor, 'Error', `${relationId} - ${error}`);
+            });
 }
 
 module.exports = {
