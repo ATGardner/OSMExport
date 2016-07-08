@@ -1,10 +1,12 @@
 'use strict';
 const express = require('express'),
     ua = require('universal-analytics'),
+    winston = require('winston'),
     cache = require('./cache'),
     osm2gpx = require('./osm2gpx'),
     app = express();
 
+winston.level = 'verbose';
 app.use(ua.middleware('UA-18054605-12', {cookieName: '_ga'}));
 
 //1660381
@@ -23,5 +25,5 @@ app.get('/osm2gpx', function ({query: {relationId}, visitor}, res) {
 });
 
 app.listen(process.env.PORT || 1337, function () {
-    console.log(`OSM2GPX listening on port ${process.env.PORT || 1337}!`);
+    winston.info(`OSM2GPX listening on port ${process.env.PORT || 1337}!`);
 });

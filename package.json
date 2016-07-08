@@ -20,6 +20,7 @@
     "node-schedule": "^1.1.1",
     "sanitize-filename": "^1.6.0",
     "universal-analytics": "^0.3.10",
+    "winston": "^2.2.0",
     "xml-parser": "^1.2.1",
     "xml2js": "^0.4.16"
   }

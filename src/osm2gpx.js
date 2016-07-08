@@ -1,10 +1,12 @@
 'use strict';
 let _ = require('lodash'),
     moment = require('moment'),
+    winston = require('winston'),
     cache = require('./cache'),
     osmApi = require('./osmApi');
 
 function sendEvent(visitor, action, label) {
+    winston.info(`${action} - ${label}`);
     visitor.event({
         ec: `OSM2GPX`,
         ea: action,
@@ -14,6 +16,7 @@ function sendEvent(visitor, action, label) {
 }
 
 function sendTiming(visitor, variable, time) {
+    winston.info(`${variable} - ${time}ms`);
     visitor.timing({
         utc: `OSM2GPX`,
         utv: variable,
@@ -23,88 +26,86 @@ function sendTiming(visitor, variable, time) {
 }
 
 function transformTags(tags) {
-    return _.transform(tags || [], (result, t) => {
-        result[t.$.k] = t.$.v;
+    return _.transform(tags || [], (result, {$: {k, v}}) => {
+        result[k] = v;
     }, {});
 }
 
-function buildJson(xmlObj) {
-    let osm = xmlObj.osm,
-        relation = osm.relation[0];
-    console.log('Building JSON from result');
+function buildJson({osm: {relation: [{$: {id, timestamp, member, tag: tags}}], node: nodes, way: ways}}) {
     return {
-        nodes: _.chain(osm.node)
-            .map(n => {
-                let $ = n.$;
+        nodes: _.chain(nodes)
+            .map(({$ : {id, lat, lon}, tag: tags}) => {
                 return {
-                    id: $.id,
-                    lat: $.lat,
-                    lon: $.lon,
-                    tags: transformTags(n.tag)
+                    id,
+                    lat,
+                    lon,
+                    tags: transformTags(tags)
                 };
             })
             .keyBy('id')
             .value(),
-        ways: _.chain(osm.way)
-            .map(w => {
+        ways: _.chain(ways)
+            .map(({$: {id, timestamp}, nd: nodes, tag: tags}) => {
                 return {
-                    id: w.$.id,
-                    timestamp: w.$.timestamp,
-                    nd: _.map(w.nd, '$.ref'),
-                    tags: transformTags(w.tag)
+                    id,
+                    timestamp,
+                    nd: _.map(nodes, '$.ref'),
+                    tags: transformTags(tags)
                 };
             })
             .keyBy('id')
             .value(),
         relation: {
-            id: relation.$.id,
-            timestamp: relation.$.timestamp,
-            members: _.map(relation.member, m => {
-                return _.pick(m.$, ['ref', 'type']);
+            id,
+            timestamp,
+            members: _.map(member, ({$: {ref, type}}) => {
+                return {
+                    ref,
+                    type
+                };
             }),
-            tags: transformTags(relation.tag)
+            tags: transformTags(tags)
         }
     };
 }
 
-function writeOsmNode(builder, node) {
-    console.log(`Adding node ${node.id}`);
+function writeOsmNode(builder, {id, lat, lon, tags: {name}}) {
+    winston.silly(`Adding node ${id}`);
     builder.addWayPoints({
-        latitude: node.lat,
-        longitude: node.lon,
-        name: node.tags.name
+        latitude: lat,
+        longitude: lon,
+        name
     });
 }
 
-function writeOsmWay(builder, way, nodes) {
-    let points = _.map(way.nd, nodeId => {
-        let node = nodes[nodeId];
+function writeOsmWay(builder, {nd, id, tags: {name = id}, timestamp}, nodes) {
+    const points = _.map(nd, nodeId => {
+        const {lat, lon} = nodes[nodeId];
         return {
-            latitude: node.lat,
-            longitude: node.lon
+            latitude: lat,
+            longitude: lon
         };
     });
-    console.log(`Adding way ${way.tags.name || way.id}`);
+    winston.silly(`Adding way ${name}`);
     builder.addTrack({
-        name: way.tags.name || way.id,
-        time: way.timestamp
+        name: name,
+        time: timestamp
     }, [points]);
 }
 
 function createGpx(json) {
-    let GpxFileBuilder = require('gpx').GpxFileBuilder,
+    const GpxFileBuilder = require('gpx').GpxFileBuilder,
         builder = new GpxFileBuilder(),
         relation = json.relation,
         tags = relation.tags,
         name = tags.name || relation.id;
-    console.log('Creating gpx from JSON');
     builder.setFileInfo({
         description: 'Data extracted from OSM',
         name: name,
         creator: 'OpenStreetMap relation export',
         time: relation.timestamp
     });
-    for (let member of relation.members) {
+    for (const member of relation.members) {
         switch (member.type) {
             case 'node':
                 writeOsmNode(builder, json.nodes[member.ref]);
@@ -113,47 +114,52 @@ function createGpx(json) {
                 writeOsmWay(builder, json.ways[member.ref], json.nodes);
                 break;
             default:
-                console.error(`Can not handle member of type ${member.type}`);
+                winston.warn(`Can not handle member of type ${member.type}`);
         }
     }
 
     return {
         relationId: relation.id,
-        name: name,
+        name,
         timestamp: relation.timestamp,
         xml: builder.xml()
     };
 }
 
 function getRelationTimestamp(relationId) {
-    console.log(`Getting timestamp for relation '${relationId}'`)
+    winston.verbose(`Getting timestamp for relation '${relationId}'`);
     return osmApi.fetchRelation(relationId, false)
         .then(xmlObj => {
-            let timestamp = moment(xmlObj.osm.relation[0].$.timestamp);
-            console.log(`Result: ${timestamp}`);
+            const {osm: {relation: [{$: {timestamp: t2}}]}} = xmlObj;
+            const timestamp = moment(xmlObj.osm.relation[0].$.timestamp);
+            winston.verbose(`Result: ${timestamp}`);
             return timestamp;
         });
 }
 
 function getFullRelation(relationId) {
-    console.log(`Getting full relation '${relationId}'`);
+    winston.verbose(`Getting full relation '${relationId}'`);
     return osmApi.fetchRelation(relationId, true)
         .then(xmlObj => {
-            let json = buildJson(xmlObj);
+            winston.verbose(`Building JSON from result, relationId: ${relationId}`);
+            const json = buildJson(xmlObj);
+            winston.verbose(`Creating gpx from JSON, relationId: ${relationId}`);
             return createGpx(json);
         });
 }
 
 function getFromCache(relationId) {
-    const cacheData = cache.get(relationId);
-    if (cacheData) {
+    const cachedData = cache.get(relationId);
+    if (cachedData) {
+        const {timestamp: cachedTimestamp, fileName} = cachedData;
+        winston.verbose(`Found ${relationId} in cache, timestamp: ${cachedTimestamp}`);
         return getRelationTimestamp(relationId)
             .then(osmTimestamp => {
-                if (osmTimestamp.isAfter(cacheData.timestamp)) {
+                if (osmTimestamp.isAfter(cachedTimestamp)) {
                     return Promise.reject();
                 }
 
-                return cacheData.fileName;
+                return fileName;
             });
     } else {
         return Promise.reject();
@@ -170,7 +176,6 @@ function getRelation(visitor, relationId) {
             },
             () => {
                 sendEvent(visitor, 'Cache miss', relationId);
-
                 return getFullRelation(relationId)
                     .then(gpx => cache.put(gpx));
             })

@@ -5,6 +5,7 @@ let _ = require('lodash'),
     path = require('path'),
     sanitize = require('sanitize-filename'),
     schedule = require('node-schedule'),
+    winston = require('winston'),
     CACHE_DIR = 'cache';
 
 function removeOldRelationFiles(relationId) {
@@ -33,19 +34,19 @@ function exists(path) {
 }
 
 function removeOldFiles() {
-    console.log('Removing old files');
+    winston.verbose('Removing old files');
     try {
         const relationDirs = fs.readdirSync(CACHE_DIR);
         for (const relationId in relationDirs) {
             removeOldRelationFiles(relationId);
         }
-    }
-    catch (e) {
-        console.error('Failed removing old files', e);
+    } catch (e) {
+        winston.error('Failed removing old files', e);
     }
 }
 
 function init() {
+    winston.verbose('Scheduling remove old files');
     schedule.scheduleJob('0 0 * * * *', removeOldFiles);
 }
 
@@ -54,11 +55,13 @@ function get(relationId) {
         const relationDir = path.join('cache', relationId),
             dirExists = exists(relationDir);
         if (!dirExists) {
+            winston.verbose(`Relation dir does not exist, relationId: ${relationId}`);
             return;
         }
 
         const files = fs.readdirSync(relationDir);
         if (_.isEmpty(files)) {
+            winston.verbose(`Relation dir does is empty, relationId: ${relationId}`);
             return;
         }
 
@@ -69,7 +72,7 @@ function get(relationId) {
             timestamp: stat.birthtime
         };
     } catch (e) {
-        console.error('Failed getting from cache', e);
+        winston.error('Failed getting from cache', e);
     }
 }
 
@@ -77,6 +80,7 @@ function put(gpx) {
     try {
         const cacheExists = exists(CACHE_DIR);
         if (!cacheExists) {
+            winston.verbose('Creating cache base dir');
             fs.mkdirSync(CACHE_DIR);
         }
 
@@ -86,7 +90,7 @@ function put(gpx) {
         fs.writeFileSync(fileName, gpx.xml);
         return fileName;
     } catch (e) {
-        console.error('Failed putting into cache', e);
+        winston.error('Failed putting into cache', e);
         throw e;
     }
 }
