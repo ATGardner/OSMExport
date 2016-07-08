@@ -37,7 +37,7 @@ function removeOldFiles() {
     winston.verbose('Removing old files');
     try {
         const relationDirs = fs.readdirSync(CACHE_DIR);
-        for (const relationId in relationDirs) {
+        for (const relationId of relationDirs) {
             removeOldRelationFiles(relationId);
         }
     } catch (e) {
@@ -61,7 +61,7 @@ function get(relationId) {
 
         const files = fs.readdirSync(relationDir);
         if (_.isEmpty(files)) {
-            winston.verbose(`Relation dir does is empty, relationId: ${relationId}`);
+            winston.verbose(`Relation dir is empty, relationId: ${relationId}`);
             return;
         }
 
@@ -76,17 +76,20 @@ function get(relationId) {
     }
 }
 
+function ensureDir(path) {
+    const dirExists = exists(path);
+    if (!dirExists) {
+        winston.verbose(`Creating ${path} dir`);
+        fs.mkdirSync(path);
+    }
+}
+
 function put(gpx) {
     try {
-        const cacheExists = exists(CACHE_DIR);
-        if (!cacheExists) {
-            winston.verbose('Creating cache base dir');
-            fs.mkdirSync(CACHE_DIR);
-        }
-
-        const relationDir = path.join(CACHE_DIR, gpx.relationId),
-            fileName = path.join(relationDir, `${sanitize(gpx.name)}-${moment(gpx.timestamp).format('YY-MM-DD')}.gpx`);
-        fs.mkdirSync(relationDir);
+        ensureDir(CACHE_DIR);
+        const relationDir = path.join(CACHE_DIR, gpx.relationId);
+        ensureDir(relationDir);
+        const fileName = path.join(relationDir, `${sanitize(gpx.name)}-${moment(gpx.timestamp).format('YY-MM-DD')}.gpx`);
         fs.writeFileSync(fileName, gpx.xml);
         return fileName;
     } catch (e) {
