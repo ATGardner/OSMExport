@@ -8,7 +8,7 @@ let _ = require('lodash'),
 function sendEvent(visitor, action, label) {
     winston.info(`${action} - ${label}`);
     visitor.event({
-        ec: `OSM2GPX`,
+        ec: `OSM2GPXv2`,
         ea: action,
         el: label,
         aip: true
@@ -18,7 +18,7 @@ function sendEvent(visitor, action, label) {
 function sendTiming(visitor, variable, time) {
     winston.info(`${variable} - ${time}ms`);
     visitor.timing({
-        utc: `OSM2GPX`,
+        utc: `OSM2GPXv2`,
         utv: variable,
         utt: time,
         aip: true
