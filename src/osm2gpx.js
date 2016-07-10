@@ -31,7 +31,7 @@ function transformTags(tags) {
     }, {});
 }
 
-function buildJson({osm: {relation: [{$: {id, timestamp, member, tag: tags}}], node: nodes, way: ways}}) {
+function buildJson({osm: {relation: [{$: {id, timestamp}, member, tag: tags}], node: nodes, way: ways}}) {
     return {
         nodes: _.chain(nodes)
             .map(({$ : {id, lat, lon}, tag: tags}) => {
