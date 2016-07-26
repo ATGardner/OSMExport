@@ -7,7 +7,9 @@ const express = require('express'),
     app = express();
 
 winston.level = 'verbose';
-app.use(ua.middleware('UA-18054605-12', {cookieName: '_ga'}));
+if (app.get('env') === 'production') {
+    app.use(ua.middleware('UA-18054605-12', {cookieName: '_ga'}));
+}
 
 //1660381
 //5775913

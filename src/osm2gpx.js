@@ -7,22 +7,26 @@ let _ = require('lodash'),
 
 function sendEvent(visitor, action, label) {
     winston.info(`${action} - ${label}`);
-    visitor.event({
-        ec: `OSM2GPXv2`,
-        ea: action,
-        el: label,
-        aip: true
-    }).send();
+    if (visitor) {
+        visitor.event({
+            ec: `OSM2GPXv2`,
+            ea: action,
+            el: label,
+            aip: true
+        }).send();
+    }
 }
 
 function sendTiming(visitor, variable, time) {
     winston.info(`${variable} - ${time}ms`);
-    visitor.timing({
-        utc: `OSM2GPXv2`,
-        utv: variable,
-        utt: time,
-        aip: true
-    }).send();
+    if (visitor) {
+        visitor.timing({
+            utc: `OSM2GPXv2`,
+            utv: variable,
+            utt: time,
+            aip: true
+        }).send();
+    }
 }
 
 function transformTags(tags) {
@@ -31,31 +35,24 @@ function transformTags(tags) {
     }, {});
 }
 
-function buildJson({osm: {relation: {$id, $timestamp, member, tag: tags}, node: nodes, way: ways}}) {
-    return {
-        nodes: _.chain(nodes)
-            .map(({$id, $lat, $lon, tag: tags}) => {
-                return {
-                    id: $id,
-                    lat: $lat,
-                    lon: $lon,
-                    tags: transformTags(tags)
-                };
-            })
-            .keyBy('id')
-            .value(),
-        ways: _.chain(ways)
-            .map(({$id, $timestamp, nd: nodes, tag: tags}) => {
-                return {
-                    id: $id,
-                    timestamp: $timestamp,
-                    nd: _.map(nodes, '$ref'),
-                    tags: transformTags(tags)
-                };
-            })
-            .keyBy('id')
-            .value(),
-        relation: {
+function buildJson({osm: {relation: {$id, $timestamp, member, tag: tags}, node, way}}) {
+    const nodes = new Map(_.map(node, ({$id, $lat, $lon, tag: tags}) => {
+            return [$id, {
+                id: $id,
+                lat: $lat,
+                lon: $lon,
+                tags: transformTags(tags)
+            }];
+        })),
+        ways = new Map(_.map(way, ({$id, $timestamp, nd: nodes, tag: tags}) => {
+            return [$id, {
+                id: $id,
+                timestamp: $timestamp,
+                nd: _.map(nodes, '$ref'),
+                tags: transformTags(tags)
+            }];
+        })),
+        relation = {
             id: $id,
             timestamp: $timestamp,
             members: _.map(member, ({$ref, $type}) => {
@@ -65,7 +62,11 @@ function buildJson({osm: {relation: {$id, $timestamp, member, tag: tags}, node: 
                 };
             }),
             tags: transformTags(tags)
-        }
+        };
+    return {
+        nodes,
+        ways,
+        relation
     };
 }
 
@@ -80,7 +81,7 @@ function writeOsmNode(builder, {id, lat, lon, tags: {name}}) {
 
 function writeOsmWay(builder, {nd, id, tags: {name = id}, timestamp}, nodes) {
     const points = _.map(nd, nodeId => {
-        const {lat, lon} = nodes[nodeId];
+        const {lat, lon} = nodes.get(nodeId);
         return {
             latitude: lat,
             longitude: lon
@@ -88,7 +89,7 @@ function writeOsmWay(builder, {nd, id, tags: {name = id}, timestamp}, nodes) {
     });
     winston.silly(`Adding way ${name}`);
     builder.addTrack({
-        name: name,
+        name,
         time: timestamp
     }, [points]);
 }
@@ -97,21 +98,20 @@ function createGpx(json) {
     const GpxFileBuilder = require('gpx').GpxFileBuilder,
         builder = new GpxFileBuilder(),
         relation = json.relation,
-        tags = relation.tags,
-        name = tags.name || relation.id;
+        {id, name = id} = relation.tags;
     builder.setFileInfo({
         description: 'Data extracted from OSM',
-        name: name,
+        name,
         creator: 'OpenStreetMap relation export',
         time: relation.timestamp
     });
     for (const member of relation.members) {
         switch (member.type) {
             case 'node':
-                writeOsmNode(builder, json.nodes[member.ref]);
+                writeOsmNode(builder, json.nodes.get(member.ref));
                 break;
             case 'way':
-                writeOsmWay(builder, json.ways[member.ref], json.nodes);
+                writeOsmWay(builder, json.ways.get(member.ref), json.nodes);
                 break;
             default:
                 winston.warn(`Can not handle member of type ${member.type}`);
@@ -191,5 +191,5 @@ function getRelation(visitor, relationId) {
 }
 
 module.exports = {
-    getRelation: getRelation
+    getRelation
 };
