@@ -17,9 +17,9 @@ app.get('/osm2gpx', function ({query: {relationId}, visitor}, res) {
         .then(path => {
                 res.download(path);
             },
-            error => {
-                res.writeHead(200, {'Content-Type': 'text/plain'});
-                res.write(error);
+            ({stack}) => {
+                res.writeHead(500, {'Content-Type': 'text/plain'});
+                res.write(stack);
                 res.send();
             });
 });

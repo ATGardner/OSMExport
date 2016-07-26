@@ -1,7 +1,6 @@
 'use strict';
 const fetch = require('node-fetch'),
-    promisify = require('es6-promisify'),
-    parseString = promisify(require('xml2js').parseString);
+    jxon = require('jxon');
 
 function request(url) {
     return fetch(url)
@@ -12,7 +11,7 @@ function request(url) {
 
             return res.text();
         })
-        .then(parseString);
+        .then(res => jxon.stringToJs(res));
 }
 
 function fetchRelation(relationId, full) {

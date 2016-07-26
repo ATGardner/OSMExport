@@ -26,42 +26,42 @@ function sendTiming(visitor, variable, time) {
 }
 
 function transformTags(tags) {
-    return _.transform(tags || [], (result, {$: {k, v}}) => {
-        result[k] = v;
+    return _.transform(tags || [], (result, {$k, $v}) => {
+        result[$k] = $v;
     }, {});
 }
 
-function buildJson({osm: {relation: [{$: {id, timestamp}, member, tag: tags}], node: nodes, way: ways}}) {
+function buildJson({osm: {relation: {$id, $timestamp, member, tag: tags}, node: nodes, way: ways}}) {
     return {
         nodes: _.chain(nodes)
-            .map(({$ : {id, lat, lon}, tag: tags}) => {
+            .map(({$id, $lat, $lon, tag: tags}) => {
                 return {
-                    id,
-                    lat,
-                    lon,
+                    id: $id,
+                    lat: $lat,
+                    lon: $lon,
                     tags: transformTags(tags)
                 };
             })
             .keyBy('id')
             .value(),
         ways: _.chain(ways)
-            .map(({$: {id, timestamp}, nd: nodes, tag: tags}) => {
+            .map(({$id, $timestamp, nd: nodes, tag: tags}) => {
                 return {
-                    id,
-                    timestamp,
-                    nd: _.map(nodes, '$.ref'),
+                    id: $id,
+                    timestamp: $timestamp,
+                    nd: _.map(nodes, '$ref'),
                     tags: transformTags(tags)
                 };
             })
             .keyBy('id')
             .value(),
         relation: {
-            id,
-            timestamp,
-            members: _.map(member, ({$: {ref, type}}) => {
+            id: $id,
+            timestamp: $timestamp,
+            members: _.map(member, ({$ref, $type}) => {
                 return {
-                    ref,
-                    type
+                    ref: $ref,
+                    type: $type
                 };
             }),
             tags: transformTags(tags)
@@ -129,11 +129,9 @@ function createGpx(json) {
 function getRelationTimestamp(relationId) {
     winston.verbose(`Getting timestamp for relation '${relationId}'`);
     return osmApi.fetchRelation(relationId, false)
-        .then(xmlObj => {
-            const {osm: {relation: [{$: {timestamp: t2}}]}} = xmlObj;
-            const timestamp = moment(xmlObj.osm.relation[0].$.timestamp);
-            winston.verbose(`Result: ${timestamp}`);
-            return timestamp;
+        .then(({osm: {relation: {$timestamp}}}) => {
+            winston.verbose(`Result: ${$timestamp}`);
+            return moment($timestamp);
         });
 }
 
@@ -188,6 +186,7 @@ function getRelation(visitor, relationId) {
                 const end = moment().diff(start);
                 sendTiming(visitor, 'failureTime', end);
                 sendEvent(visitor, 'Error', `${relationId} - ${error}`);
+                return Promise.reject(error);
             });
 }
 
