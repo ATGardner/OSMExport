@@ -1,5 +1,6 @@
 'use strict';
 let _ = require('lodash'),
+    GpxFileBuilder = require('gpx').GpxFileBuilder,
     moment = require('moment'),
     winston = require('winston'),
     cache = require('./cache'),
@@ -94,34 +95,31 @@ function writeOsmWay(builder, {nd, id, tags: {name = id}, timestamp}, nodes) {
     }, [points]);
 }
 
-function createGpx(json) {
-    const GpxFileBuilder = require('gpx').GpxFileBuilder,
-        builder = new GpxFileBuilder(),
-        relation = json.relation,
-        {id, name = id} = relation.tags;
+function createGpx({relation: {id, tags: {name = id}, timestamp, members}, nodes, ways}) {
+    const builder = new GpxFileBuilder();
     builder.setFileInfo({
         description: 'Data extracted from OSM',
         name,
         creator: 'OpenStreetMap relation export',
-        time: relation.timestamp
+        time: timestamp
     });
-    for (const member of relation.members) {
-        switch (member.type) {
+    for (const {type, ref} of members) {
+        switch (type) {
             case 'node':
-                writeOsmNode(builder, json.nodes.get(member.ref));
+                writeOsmNode(builder, nodes.get(ref));
                 break;
             case 'way':
-                writeOsmWay(builder, json.ways.get(member.ref), json.nodes);
+                writeOsmWay(builder, ways.get(ref), nodes);
                 break;
             default:
-                winston.warn(`Can not handle member of type ${member.type}`);
+                winston.warn(`Can not handle member of type ${type}`);
         }
     }
 
     return {
-        relationId: relation.id,
+        relationId: id,
         name,
-        timestamp: relation.timestamp,
+        timestamp,
         xml: builder.xml()
     };
 }
@@ -147,9 +145,8 @@ function getFullRelation(relationId) {
 }
 
 function getFromCache(relationId) {
-    const cachedData = cache.get(relationId);
-    if (cachedData) {
-        const {timestamp: cachedTimestamp, fileName} = cachedData;
+    const {timestamp: cachedTimestamp, fileName} = cache.get(relationId) || {};
+    if (cachedTimestamp) {
         winston.verbose(`Found ${relationId} in cache, timestamp: ${cachedTimestamp}`);
         return getRelationTimestamp(relationId)
             .then(osmTimestamp => {
