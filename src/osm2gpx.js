@@ -10,7 +10,7 @@ function sendEvent(visitor, action, label) {
     winston.info(`${action} - ${label}`);
     if (visitor) {
         visitor.event({
-            ec: 'OSM2GPXv2',
+            ec: 'OSM2GPXv3',
             ea: action,
             el: label,
             aip: true
@@ -22,7 +22,7 @@ function sendTiming(visitor, variable, time) {
     winston.info(`${variable} - ${time}ms`);
     if (visitor) {
         visitor.timing({
-            utc: 'OSM2GPXv2',
+            utc: 'OSM2GPXv3',
             utv: variable,
             utt: time,
             aip: true
