@@ -1,5 +1,5 @@
 'use strict';
-let _ = require('lodash'),
+const _ = require('lodash'),
     GpxFileBuilder = require('gpx').GpxFileBuilder,
     moment = require('moment'),
     winston = require('winston'),
@@ -10,7 +10,7 @@ function sendEvent(visitor, action, label) {
     winston.info(`${action} - ${label}`);
     if (visitor) {
         visitor.event({
-            ec: `OSM2GPXv2`,
+            ec: 'OSM2GPXv2',
             ea: action,
             el: label,
             aip: true
@@ -22,7 +22,7 @@ function sendTiming(visitor, variable, time) {
     winston.info(`${variable} - ${time}ms`);
     if (visitor) {
         visitor.timing({
-            utc: `OSM2GPXv2`,
+            utc: 'OSM2GPXv2',
             utv: variable,
             utt: time,
             aip: true
@@ -36,111 +36,135 @@ function transformTags(tags) {
     }, {});
 }
 
-function buildJson({osm: {relation: {$id, $timestamp, member, tag: tags}, node, way}}) {
-    const nodes = new Map(_.map(node, ({$id, $lat, $lon, tag: tags}) => {
-            return [$id, {
-                id: $id,
-                lat: $lat,
-                lon: $lon,
-                tags: transformTags(tags)
-            }];
-        })),
-        ways = new Map(_.map(way, ({$id, $timestamp, nd: nodes, tag: tags}) => {
-            return [$id, {
-                id: $id,
-                timestamp: $timestamp,
-                nd: _.map(nodes, '$ref'),
-                tags: transformTags(tags)
-            }];
-        })),
-        relation = {
-            id: $id,
-            timestamp: $timestamp,
-            members: _.map(member, ({$ref, $type}) => {
-                return {
-                    ref: $ref,
-                    type: $type
-                };
-            }),
-            tags: transformTags(tags)
-        };
-    return {
-        nodes,
-        ways,
-        relation
-    };
-}
-
-function writeOsmNode(builder, {id, lat, lon, tags: {name}}) {
-    winston.silly(`Adding node ${id}`);
+function writeOsmNode(builder, {$id, $lat, $lon, tags: {name = null}}) {
+    winston.silly(`Adding node ${name || $id}`);
     builder.addWayPoints({
-        latitude: lat,
-        longitude: lon,
+        latitude: $lat,
+        longitude: $lon,
         name
     });
 }
 
-function writeOsmWay(builder, {nd, id, tags: {name = id}, timestamp}, nodes) {
-    const points = _.map(nd, nodeId => {
-        const {lat, lon} = nodes.get(nodeId);
+function writeOsmWay(builder, {nodes, $id, tags: {name = $id}, $timestamp}, nodeMap) {
+    const points = _.map(nodes, nodeId => {
+        const {$lat, $lon, tags: {name = null}} = nodeMap.get(nodeId);
         return {
-            latitude: lat,
-            longitude: lon
+            latitude: $lat,
+            longitude: $lon,
+            name
         };
     });
     winston.silly(`Adding way ${name}`);
     builder.addTrack({
         name,
-        time: timestamp
+        time: $timestamp
     }, [points]);
 }
 
-function createGpx({relation: {id, tags: {name = id}, timestamp, members}, nodes, ways}) {
-    const builder = new GpxFileBuilder();
+function writeOsmRelation(builder, {relation: {members, name}, nodes, ways, subRelations}) {
+    winston.silly(`Adding relation ${name}`);
+    for (const {$type, $ref} of _.castArray(members)) {
+        switch ($type) {
+            case 'node':
+                writeOsmNode(builder, nodes.get($ref));
+                break;
+            case 'way':
+                writeOsmWay(builder, ways.get($ref), nodes);
+                break;
+            case 'relation':
+                writeOsmRelation(builder, subRelations.get($ref));
+                break;
+            default:
+                winston.warn(`Can not handle member of type ${$type}`);
+        }
+    }
+}
+
+function createGpx(data) {
+    const {relation: {relationId, name, timestamp}} = data,
+        builder = new GpxFileBuilder();
+    winston.verbose(`Creating GPX for relation ${name}`);
     builder.setFileInfo({
         description: 'Data extracted from OSM',
         name,
         creator: 'OpenStreetMap relation export',
         time: timestamp
     });
-    for (const {type, ref} of members) {
-        switch (type) {
-            case 'node':
-                writeOsmNode(builder, nodes.get(ref));
-                break;
-            case 'way':
-                writeOsmWay(builder, ways.get(ref), nodes);
-                break;
-            default:
-                winston.warn(`Can not handle member of type ${type}`);
-        }
-    }
-
+    writeOsmRelation(builder, data);
     return {
-        relationId: id,
+        relationId,
         name,
         timestamp,
         xml: builder.xml()
     };
 }
 
-function getRelationTimestamp(relationId) {
-    winston.verbose(`Getting timestamp for relation '${relationId}'`);
-    return osmApi.fetchRelation(relationId, false)
-        .then(({osm: {relation: {$timestamp}}}) => {
-            winston.verbose(`Result: ${$timestamp}`);
-            return moment($timestamp);
-        });
+function getSubRelations({member}, full) {
+    const promises = _.chain(member)
+        .castArray()
+        .filter({$type: 'relation'})
+        .map(({$ref}) => full ? getFullRelation($ref) : getRelationTimestamp($ref))
+        .value();
+    return Promise.all(promises);
 }
 
 function getFullRelation(relationId) {
     winston.verbose(`Getting full relation '${relationId}'`);
     return osmApi.fetchRelation(relationId, true)
-        .then(xmlObj => {
-            winston.verbose(`Building JSON from result, relationId: ${relationId}`);
-            const json = buildJson(xmlObj);
-            winston.verbose(`Creating gpx from JSON, relationId: ${relationId}`);
-            return createGpx(json);
+        .then(json => {
+            const {osm: {relation, node, way}} = json,
+                mainRelation = _.chain(relation)
+                    .castArray()
+                    .find({$id: relationId})
+                    .value();
+            return getSubRelations(mainRelation, true)
+                .then(result => {
+                    const nodes = new Map(_.map(node, ({$id, $lat, $lon, tag}) => {
+                            return [$id, {
+                                $id,
+                                $lat,
+                                $lon,
+                                tags: transformTags(tag)
+                            }];
+                        })),
+                        ways = new Map(_.map(way, ({$id, $timestamp, nd, tag}) => {
+                            return [$id, {
+                                $id,
+                                $timestamp,
+                                nodes: _.map(nd, '$ref'),
+                                tags: transformTags(tag)
+                            }];
+                        })),
+                        subRelations = new Map(_.map(result, (subRelation) => {
+                            const {relation: {relationId}} = subRelation;
+                            return [relationId, subRelation];
+                        })),
+                        {tag, $timestamp: timestamp, member: members} = mainRelation,
+                        {name = relationId} = transformTags(tag);
+                    return {
+                        relation: {
+                            relationId,
+                            name,
+                            timestamp,
+                            members
+                        },
+                        nodes,
+                        ways,
+                        subRelations
+                    };
+                });
+        });
+}
+
+function getRelationTimestamp(relationId) {
+    winston.verbose(`Getting timestamp for relation '${relationId}'`);
+    return osmApi.fetchRelation(relationId, false)
+        .then(({osm: {relation}}) => {
+            const {$timestamp} = relation;
+            return getSubRelations(relation, false)
+                .then(result => {
+                    return moment.max(...result, moment($timestamp));
+                });
         });
 }
 
@@ -150,14 +174,15 @@ function getFromCache(relationId) {
         winston.verbose(`Found ${relationId} in cache, timestamp: ${cachedTimestamp}`);
         return getRelationTimestamp(relationId)
             .then(osmTimestamp => {
+                winston.verbose(`Relation ${relationId} osm timestamp: ${osmTimestamp}`);
                 if (osmTimestamp.isAfter(cachedTimestamp)) {
-                    return Promise.reject();
+                    return Promise.reject(true);
                 }
 
                 return fileName;
             });
     } else {
-        return Promise.reject();
+        return Promise.reject(false);
     }
 }
 
@@ -169,9 +194,10 @@ function getRelation(visitor, relationId) {
                 sendEvent(visitor, 'Cache hit', relationId);
                 return fileName;
             },
-            () => {
-                sendEvent(visitor, 'Cache miss', relationId);
+            outdated => {
+                sendEvent(visitor, outdated ? 'Cache outdated' : 'Cache miss', relationId);
                 return getFullRelation(relationId)
+                    .then(data => createGpx(data))
                     .then(gpx => cache.put(gpx));
             })
         .then(fileName => {
