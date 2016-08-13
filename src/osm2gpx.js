@@ -45,9 +45,8 @@ function writeOsmNode(builder, {$id, $lat, $lon, tags: {name = null}}) {
     });
 }
 
-function writeOsmWay(builder, {nodes, $id, tags: {name = $id}, $timestamp}, nodeMap) {
-    const points = _.map(nodes, nodeId => {
-        const {$lat, $lon, tags: {name = null}} = nodeMap.get(nodeId);
+function writeOsmWay(builder, {nodes, $id, tags: {name = $id}, $timestamp}) {
+    const points = nodes.map(({$lat, $lon, tags: {name = null}}) => {
         return {
             latitude: $lat,
             longitude: $lon,
@@ -61,27 +60,25 @@ function writeOsmWay(builder, {nodes, $id, tags: {name = $id}, $timestamp}, node
     }, [points]);
 }
 
-function writeOsmRelation(builder, {relation: {members, name}, nodes, ways, subRelations}) {
+function writeOsmRelation(builder, {members, name}) {
     winston.silly(`Adding relation ${name}`);
-    for (const {$type, $ref} of _.castArray(members)) {
-        switch ($type) {
+    for (const member of _.castArray(members)) {
+        switch (member.type) {
             case 'node':
-                writeOsmNode(builder, nodes.get($ref));
+                writeOsmNode(builder, member);
                 break;
             case 'way':
-                writeOsmWay(builder, ways.get($ref), nodes);
+                writeOsmWay(builder, member);
                 break;
             case 'relation':
-                writeOsmRelation(builder, subRelations.get($ref));
+                writeOsmRelation(builder, member);
                 break;
-            default:
-                winston.warn(`Can not handle member of type ${$type}`);
         }
     }
 }
 
 function createGpx(data) {
-    const {relation: {relationId, name, timestamp}} = data,
+    const {relationId, name, timestamp} = data,
         builder = new GpxFileBuilder();
     winston.verbose(`Creating GPX for relation ${name}`);
     builder.setFileInfo({
@@ -108,49 +105,91 @@ function getSubRelations({member}, full) {
     return Promise.all(promises);
 }
 
+// function calculateDistance(node1, node2) {
+//     var R = 6371e3; // metres
+//     var φ1 = lat1.toRadians();
+//     var φ2 = lat2.toRadians();
+//     var Δφ = (lat2 - lat1).toRadians();
+//     var Δλ = (lon2 - lon1).toRadians();
+//
+//     var a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+//         Math.cos(φ1) * Math.cos(φ2) *
+//         Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+//     var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+//
+//     var d = R * c;
+// }
+//
+// function findClosestWay(ways, node) {
+//     return _.chain(ways)
+//         .sortBy(({nodes}) => {
+//             const firstNode = nodes[0],
+//                 lastNode = nodes[nodes.length - 1];
+//
+//         })
+// }
+//
+// function sortWays(ways) {
+//     const [firstWay, ...rest] = ways;
+//     const result = [firstWay];
+//     const lastNode = _.last(firstWay.nodes);
+//     const nextWay = findClosestWay(rest, lastNode);
+// }
+
 function getFullRelation(relationId) {
     winston.verbose(`Getting full relation '${relationId}'`);
     return osmApi.fetchRelation(relationId, true)
         .then(json => {
-            const {osm: {relation, node, way}} = json,
+            const {osm: {relation = [], node = [], way = []}} = json,
                 mainRelation = _.chain(relation)
                     .castArray()
                     .find({$id: relationId})
                     .value();
             return getSubRelations(mainRelation, true)
                 .then(result => {
-                    const nodes = new Map(_.map(node, ({$id, $lat, $lon, tag}) => {
+                    const nodes = new Map(node.map(({$id, $lat, $lon, tag}) => {
                             return [$id, {
                                 $id,
+                                type: 'node',
                                 $lat,
                                 $lon,
                                 tags: transformTags(tag)
                             }];
                         })),
-                        ways = new Map(_.map(way, ({$id, $timestamp, nd, tag}) => {
+                        ways = new Map(way.map(({$id, $timestamp, nd, tag}) => {
                             return [$id, {
                                 $id,
+                                type: 'way',
                                 $timestamp,
-                                nodes: _.map(nd, '$ref'),
+                                nodes: nd.map(({$ref}) => {
+                                    return nodes.get($ref);
+                                }),
                                 tags: transformTags(tag)
                             }];
                         })),
-                        subRelations = new Map(_.map(result, (subRelation) => {
-                            const {relation: {relationId}} = subRelation;
+                        subRelations = new Map(result.map(subRelation => {
+                            const {relationId} = subRelation;
                             return [relationId, subRelation];
                         })),
-                        {tag, $timestamp: timestamp, member: members} = mainRelation,
+                        {tag, $timestamp: timestamp, member} = mainRelation,
                         {name = relationId} = transformTags(tag);
                     return {
-                        relation: {
-                            relationId,
-                            name,
-                            timestamp,
-                            members
-                        },
-                        nodes,
-                        ways,
-                        subRelations
+                        relationId,
+                        type: 'relation',
+                        name,
+                        timestamp,
+                        members: member.map(({$type, $ref}) => {
+                            switch ($type) {
+                                case 'node':
+                                    return nodes.get($ref);
+                                case 'way':
+                                    return ways.get($ref);
+                                case 'relation':
+                                    return subRelations.get($ref);
+                                default:
+                                    winston.warn(`Can not handle member of type ${$type}`);
+                            }
+                        })
                     };
                 });
         });
