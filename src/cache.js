@@ -1,35 +1,25 @@
 'use strict';
-let _ = require('lodash'),
-    fs = require('fs'),
-    moment = require('moment'),
-    path = require('path'),
-    sanitize = require('sanitize-filename'),
-    schedule = require('node-schedule'),
-    winston = require('winston'),
-    CACHE_DIR = 'cache';
+const _ = require('lodash');
+const fs = require('fs');
+const moment = require('moment');
+const path = require('path');
+const schedule = require('node-schedule');
+const winston = require('winston');
+const CACHE_DIR = 'cache';
 
 function removeOldRelationFiles(relationId) {
-    const relationDir = path.join(CACHE_DIR, relationId),
-        files = fs.readdirSync(relationDir);
+    const relationDir = path.join(CACHE_DIR, relationId);
+    const files = fs.readdirSync(relationDir);
     if (_.isEmpty(files)) {
         fs.rmdirSync(relationDir);
         return;
     }
 
-    const fileName = path.join(relationDir, files[0]),
-        stat = fs.statSync(fileName);
+    const fileName = path.join(relationDir, files[0]);
+    const stat = fs.statSync(fileName);
     if (moment().diff(stat.birthtime, 'weeks') > 1) {
         fs.unlinkSync(fileName);
         fs.rmdirSync(relationDir);
-    }
-}
-
-function exists(path) {
-    try {
-        fs.accessSync(path);
-        return true;
-    } catch (e) {
-        return false;
     }
 }
 
@@ -45,6 +35,14 @@ function removeOldFiles() {
     }
 }
 
+function ensureDir(path) {
+    const dirExists = fs.existsSync(path);
+    if (!dirExists) {
+        winston.verbose(`Creating ${path} dir`);
+        fs.mkdirSync(path);
+    }
+}
+
 function init() {
     winston.verbose('Scheduling remove old files');
     schedule.scheduleJob('0 0 * * * *', removeOldFiles);
@@ -52,8 +50,8 @@ function init() {
 
 function get(relationId) {
     try {
-        const relationDir = path.join('cache', relationId),
-            dirExists = exists(relationDir);
+        const relationDir = path.join('cache', relationId);
+        const dirExists = fs.existsSync(relationDir);
         if (!dirExists) {
             winston.verbose(`Relation dir does not exist, relationId: ${relationId}`);
             return;
@@ -65,33 +63,32 @@ function get(relationId) {
             return;
         }
 
-        const fileName = path.join(relationDir, files[0]),
-            stat = fs.statSync(fileName);
+        const metadataFileName = path.join(relationDir, 'metadata.osm');
+        const metadata = JSON.parse(fs.readFileSync(metadataFileName));
+        const gpxFileName = path.join(relationDir, 'data.gpx');
         return {
-            fileName,
-            timestamp: stat.birthtime
+            metadata,
+            gpxFileName
         };
     } catch (e) {
         winston.error('Failed getting from cache', e);
     }
 }
 
-function ensureDir(path) {
-    const dirExists = exists(path);
-    if (!dirExists) {
-        winston.verbose(`Creating ${path} dir`);
-        fs.mkdirSync(path);
-    }
-}
-
-function put(gpx) {
+function put(metadata, gpx) {
     try {
         ensureDir(CACHE_DIR);
-        const relationDir = path.join(CACHE_DIR, gpx.relationId);
+        const relationDir = path.join(CACHE_DIR, metadata.relationId);
         ensureDir(relationDir);
-        const fileName = path.join(relationDir, `${sanitize(gpx.name)}-${moment(gpx.timestamp).format('YY-MM-DD')}.gpx`);
-        fs.writeFileSync(fileName, gpx.xml);
-        return fileName;
+        metadata = _.omit(metadata, 'members');
+        const metadataFileName = path.join(relationDir, 'metadata.osm');
+        fs.writeFileSync(metadataFileName, JSON.stringify(metadata));
+        const gpxFileName = path.join(relationDir, 'data.gpx');
+        fs.writeFileSync(gpxFileName, gpx);
+        return {
+            metadata,
+            gpxFileName
+        };
     } catch (e) {
         winston.error('Failed putting into cache', e);
         throw e;

@@ -1,5 +1,7 @@
 'use strict';
 const express = require('express');
+const moment = require('moment');
+const sanitize = require('sanitize-filename');
 const ua = require('universal-analytics');
 const winston = require('winston');
 const cache = require('./cache');
@@ -11,13 +13,19 @@ if (app.get('env') === 'production') {
     app.use(ua.middleware('UA-18054605-12', {cookieName: '_ga'}));
 }
 
+function createFileName(metadata, {nameKey = 'name', name = metadata.tags[nameKey] || metadata.relationId}) {
+    return `${sanitize(name)}-${moment(metadata.timestamp).format('YY-MM-DD')}.gpx`;
+}
+
+//http://localhost:1337/osm2gpx?relationId=1660381
 //1660381
 //5775913
 //282071
 app.get('/osm2gpx', function ({query, visitor}, res) {
     return osm2gpx.getRelation(visitor, query)
-        .then(path => {
-                res.download(path);
+        .then(({metadata, gpxFileName}) => {
+                const fileName = createFileName(metadata, query);
+                res.download(gpxFileName, fileName);
             },
             ({stack}) => {
                 res.writeHead(500, {'Content-Type': 'text/plain'});

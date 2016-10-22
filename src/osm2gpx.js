@@ -78,23 +78,18 @@ function writeOsmRelation(builder, {members, name}) {
     }
 }
 
-function createGpx(relation/*, name*/) {
-    const {relationId, timestamp, tags: {name}} = relation;
+function createGpx(relation) {
+    const {relationId, timestamp} = relation;
     const builder = new GpxFileBuilder();
-    winston.verbose(`Creating GPX for relation ${name}`);
+    winston.verbose(`Creating GPX for relation ${relationId}`);
     builder.setFileInfo({
         description: 'Data extracted from OSM',
-        name,
+        name: relationId,
         creator: 'OpenStreetMap relation export',
         time: timestamp
     });
     writeOsmRelation(builder, relation);
-    return {
-        relationId,
-        name,
-        timestamp,
-        xml: builder.xml()
-    };
+    return builder.xml();
 }
 
 function getSubRelations({member}, full) {
@@ -178,8 +173,9 @@ function getRelationTimestamp(relationId) {
 }
 
 function getFromCache(relationId) {
-    const {timestamp: cachedTimestamp, fileName} = cache.get(relationId) || {};
-    if (cachedTimestamp) {
+    const result = cache.get(relationId);
+    if (result) {
+        const {metadata: {timestamp: cachedTimestamp}} = result;
         winston.verbose(`Found ${relationId} in cache, timestamp: ${cachedTimestamp}`);
         return getRelationTimestamp(relationId)
             .then(osmTimestamp => {
@@ -188,14 +184,14 @@ function getFromCache(relationId) {
                     return Promise.reject(true);
                 }
 
-                return fileName;
+                return result;
             });
     } else {
         return Promise.reject(false);
     }
 }
 
-function getRelation(visitor, {relationId/*, nameKey = 'name', name*/, joinWays = true}) {
+function getRelation(visitor, {relationId, joinWays = true}) {
     sendEvent(visitor, 'Get', relationId);
     const start = moment();
     return getFromCache(relationId)
@@ -207,15 +203,15 @@ function getRelation(visitor, {relationId/*, nameKey = 'name', name*/, joinWays 
                         utils.joinWays(relation);
                     }
 
-                    return createGpx(relation/*, name || relation.tags[nameKey] || relationId*/);
-                })
-                .then(gpx => cache.put(gpx));
+                    const gpx = createGpx(relation);
+                    return cache.put(relation, gpx);
+                });
         })
         .then(
-            fileName => {
+            result => {
                 const end = moment().diff(start);
                 sendTiming(visitor, 'getRelationTime', end);
-                return fileName;
+                return result;
             },
             error => {
                 const end = moment().diff(start);
