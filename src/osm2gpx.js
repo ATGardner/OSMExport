@@ -1,16 +1,17 @@
 'use strict';
-const _ = require('lodash'),
-    GpxFileBuilder = require('gpx').GpxFileBuilder,
-    moment = require('moment'),
-    winston = require('winston'),
-    cache = require('./cache'),
-    osmApi = require('./osmApi');
+const _ = require('lodash');
+const GpxFileBuilder = require('gpx').GpxFileBuilder;
+const moment = require('moment');
+const winston = require('winston');
+const cache = require('./cache');
+const osmApi = require('./osmApi');
+const utils = require('./utils');
 
 function sendEvent(visitor, action, label) {
     winston.info(`${action} - ${label}`);
     if (visitor) {
         visitor.event({
-            ec: 'OSM2GPXv3',
+            ec: 'OSM2GPXv4',
             ea: action,
             el: label,
             aip: true
@@ -22,7 +23,7 @@ function sendTiming(visitor, variable, time) {
     winston.info(`${variable} - ${time}ms`);
     if (visitor) {
         visitor.timing({
-            utc: 'OSM2GPXv3',
+            utc: 'OSM2GPXv4',
             utv: variable,
             utt: time,
             aip: true
@@ -77,9 +78,9 @@ function writeOsmRelation(builder, {members, name}) {
     }
 }
 
-function createGpx(data) {
-    const {relationId, name, timestamp} = data,
-        builder = new GpxFileBuilder();
+function createGpx(relation/*, name*/) {
+    const {relationId, timestamp, tags: {name}} = relation;
+    const builder = new GpxFileBuilder();
     winston.verbose(`Creating GPX for relation ${name}`);
     builder.setFileInfo({
         description: 'Data extracted from OSM',
@@ -87,7 +88,7 @@ function createGpx(data) {
         creator: 'OpenStreetMap relation export',
         time: timestamp
     });
-    writeOsmRelation(builder, data);
+    writeOsmRelation(builder, relation);
     return {
         relationId,
         name,
@@ -105,78 +106,46 @@ function getSubRelations({member}, full) {
     return Promise.all(promises);
 }
 
-// function calculateDistance(node1, node2) {
-//     var R = 6371e3; // metres
-//     var φ1 = lat1.toRadians();
-//     var φ2 = lat2.toRadians();
-//     var Δφ = (lat2 - lat1).toRadians();
-//     var Δλ = (lon2 - lon1).toRadians();
-//
-//     var a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-//         Math.cos(φ1) * Math.cos(φ2) *
-//         Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-//     var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-//
-//     var d = R * c;
-// }
-//
-// function findClosestWay(ways, node) {
-//     return _.chain(ways)
-//         .sortBy(({nodes}) => {
-//             const firstNode = nodes[0],
-//                 lastNode = nodes[nodes.length - 1];
-//
-//         })
-// }
-//
-// function sortWays(ways) {
-//     const [firstWay, ...rest] = ways;
-//     const result = [firstWay];
-//     const lastNode = _.last(firstWay.nodes);
-//     const nextWay = findClosestWay(rest, lastNode);
-// }
-
 function getFullRelation(relationId) {
     winston.verbose(`Getting full relation '${relationId}'`);
     return osmApi.fetchRelation(relationId, true)
-        .then(json => {
-            const {osm: {relation = [], node = [], way = []}} = json,
-                mainRelation = _.chain(relation)
-                    .castArray()
-                    .find({$id: relationId})
-                    .value();
+        .then(({osm: {relation = [], node = [], way = []}}) => {
+            const mainRelation = _.chain(relation)
+                .castArray()
+                .find({$id: relationId})
+                .value();
             return getSubRelations(mainRelation, true)
                 .then(result => {
                     const nodes = new Map(node.map(({$id, $lat, $lon, tag}) => {
-                            return [$id, {
-                                $id,
-                                type: 'node',
-                                $lat,
-                                $lon,
-                                tags: transformTags(tag)
-                            }];
-                        })),
-                        ways = new Map(way.map(({$id, $timestamp, nd, tag}) => {
-                            return [$id, {
-                                $id,
-                                type: 'way',
-                                $timestamp,
-                                nodes: nd.map(({$ref}) => {
-                                    return nodes.get($ref);
-                                }),
-                                tags: transformTags(tag)
-                            }];
-                        })),
-                        subRelations = new Map(result.map(subRelation => {
-                            const {relationId} = subRelation;
-                            return [relationId, subRelation];
-                        })),
-                        {tag, $timestamp: timestamp, member} = mainRelation,
-                        {name = relationId} = transformTags(tag);
-                    return {
+                        return [$id, {
+                            $id,
+                            type: 'node',
+                            $lat,
+                            $lon,
+                            tags: transformTags(tag)
+                        }];
+                    }));
+                    const ways = new Map(way.map(({$id, $timestamp, nd, tag}) => {
+                        return [$id, {
+                            $id,
+                            type: 'way',
+                            $timestamp,
+                            nodes: nd.map(({$ref}) => {
+                                return nodes.get($ref);
+                            }),
+                            tags: transformTags(tag)
+                        }];
+                    }));
+                    const subRelations = new Map(result.map(subRelation => {
+                        const {relationId} = subRelation;
+                        return [relationId, subRelation];
+                    }));
+                    const {tag, $timestamp: timestamp, member} = mainRelation;
+                    const tags = transformTags(tag);
+                    const relation = {
                         relationId,
                         type: 'relation',
-                        name,
+                        tags,
                         timestamp,
                         members: member.map(({$type, $ref}) => {
                             switch ($type) {
@@ -191,6 +160,7 @@ function getFullRelation(relationId) {
                             }
                         })
                     };
+                    return relation;
                 });
         });
 }
@@ -225,21 +195,24 @@ function getFromCache(relationId) {
     }
 }
 
-function getRelation(visitor, relationId) {
+function getRelation(visitor, {relationId/*, nameKey = 'name', name*/, joinWays = true}) {
     sendEvent(visitor, 'Get', relationId);
     const start = moment();
     return getFromCache(relationId)
-        .then(fileName => {
-                sendEvent(visitor, 'Cache hit', relationId);
-                return fileName;
-            },
-            outdated => {
-                sendEvent(visitor, outdated ? 'Cache outdated' : 'Cache miss', relationId);
-                return getFullRelation(relationId)
-                    .then(data => createGpx(data))
-                    .then(gpx => cache.put(gpx));
-            })
-        .then(fileName => {
+        .catch(outdated => {
+            sendEvent(visitor, outdated ? 'Cache outdated' : 'Cache miss', relationId);
+            return getFullRelation(relationId)
+                .then(relation => {
+                    if (joinWays) {
+                        utils.joinWays(relation);
+                    }
+
+                    return createGpx(relation/*, name || relation.tags[nameKey] || relationId*/);
+                })
+                .then(gpx => cache.put(gpx));
+        })
+        .then(
+            fileName => {
                 const end = moment().diff(start);
                 sendTiming(visitor, 'getRelationTime', end);
                 return fileName;
@@ -249,7 +222,8 @@ function getRelation(visitor, relationId) {
                 sendTiming(visitor, 'failureTime', end);
                 sendEvent(visitor, 'Error', `${relationId} - ${error}`);
                 return Promise.reject(error);
-            });
+            }
+        );
 }
 
 module.exports = {

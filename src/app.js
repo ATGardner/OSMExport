@@ -1,10 +1,10 @@
 'use strict';
-const express = require('express'),
-    ua = require('universal-analytics'),
-    winston = require('winston'),
-    cache = require('./cache'),
-    osm2gpx = require('./osm2gpx'),
-    app = express();
+const express = require('express');
+const ua = require('universal-analytics');
+const winston = require('winston');
+const cache = require('./cache');
+const osm2gpx = require('./osm2gpx');
+const app = express();
 
 winston.level = 'verbose';
 if (app.get('env') === 'production') {
@@ -14,8 +14,8 @@ if (app.get('env') === 'production') {
 //1660381
 //5775913
 //282071
-app.get('/osm2gpx', function ({query: {relationId}, visitor}, res) {
-    return osm2gpx.getRelation(visitor, relationId)
+app.get('/osm2gpx', function ({query, visitor}, res) {
+    return osm2gpx.getRelation(visitor, query)
         .then(path => {
                 res.download(path);
             },
