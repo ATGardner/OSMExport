@@ -200,7 +200,7 @@ function getRelation(visitor, {relationId, joinWays = true}) {
             return getFullRelation(relationId)
                 .then(relation => {
                     if (joinWays) {
-                        utils.joinWays(relation);
+                        utils.sortWays(relation);
                     }
 
                     const gpx = createGpx(relation);
