@@ -23,9 +23,57 @@ const Connection = {
     START_START: Symbol('START_START'),
 };
 
+/**
+ * A Section is an array of OSM ways, which connect to each other (way-n END node is identical to way-n+1 START node)
+ */
 class Section {
-    constructor(way) {
-        this.ways = [way];
+    constructor() {
+        this.ways = [];
+    }
+
+    addConnectedWays(ways) {
+        let connection;
+        do {
+            const nextWay = this.getNextWay(ways);
+            connection = nextWay.connection;
+            this.addWay(nextWay.way, connection);
+        } while (connection !== Connection.NONE);
+    }
+
+    getNextWay(ways) {
+        const {start: start1, end: end1} = this.getStartAndEnd();
+        if (!start1) {
+            const [way] = ways.splice(0, 1);
+            return {
+                way,
+                connection: Connection.END_START
+            };
+        }
+
+        for (let i = 0; i < ways.length; i += 1) {
+            const way = ways[i];
+            const {nodes: nodes2} = way;
+            const [start2, end2] = getFirstAndLast(nodes2);
+            let connection = Connection.NONE;
+            if (equalNodes(end1, start2)) {
+                connection = Connection.END_START;
+            } else if (equalNodes(end1, end2)) {
+                connection = Connection.END_END;
+            } else if (equalNodes(start1, end2)) {
+                connection = Connection.START_END;
+            } else if (equalNodes(start1, start2)) {
+                connection = Connection.START_START;
+            }
+
+            if (connection !== Connection.NONE) {
+                ways.splice(i, 1);
+                return {way: way, connection};
+            }
+        }
+
+        return {
+            connection: Connection.NONE
+        };
     }
 
     addWay(way, connection) {
@@ -51,6 +99,27 @@ class Section {
         }
     }
 
+    getWays() {
+        return this.ways;
+    }
+
+    combineWays(id) {
+        const [firstWay] = this.ways;
+        const way = {
+            $id: `combined-${id}`,
+            nodes: firstWay.nodes.slice(0),
+            $timestamp: moment.max(...this.ways.map(w => moment(w.$timestamp))).toISOString(),
+            tags: {},
+            type: 'way'
+        };
+        for (let i = 1; i < this.ways.length; i += 1) {
+            const {nodes} = this.ways[i];
+            way.nodes.push(...nodes.slice(1));
+        }
+
+        return way;
+    }
+
     reverse() {
         for (const way of this.ways) {
             reverseWay(way)
@@ -60,12 +129,12 @@ class Section {
     }
 
     getStart() {
-        const [{nodes: [start]}] = this.ways;
+        const [{nodes: [start]} = {nodes: []}] = this.ways;
         return start;
     }
 
     getEnd() {
-        const {nodes} = this.ways[this.ways.length - 1];
+        const {nodes} = this.ways[this.ways.length - 1] || {nodes: []};
         return nodes[nodes.length - 1];
     }
 
@@ -112,120 +181,132 @@ class Section {
     }
 }
 
-function getNextWay(ways, section) {
-    const {start: start1, end: end1} = section.getStartAndEnd();
-    for (let i = 0; i < ways.length; i += 1) {
-        const way = ways[i];
-        const {nodes: nodes2} = way;
-        const [start2, end2] = getFirstAndLast(nodes2);
-        let connection = Connection.NONE;
-        if (equalNodes(end1, start2)) {
-            connection = Connection.END_START;
-        } else if (equalNodes(end1, end2)) {
-            connection = Connection.END_END;
-        } else if (equalNodes(start1, end2)) {
-            connection = Connection.START_END;
-        } else if (equalNodes(start1, start2)) {
-            connection = Connection.START_START;
+class Sections {
+    constructor() {
+        this.sortedSections = [];
+    }
+
+    addWays(ways) {
+        const sections = [];
+        do {
+            const section = new Section();
+            section.addConnectedWays(ways);
+            sections.push(section);
+        } while (ways.length);
+        this.addSections(sections);
+
+    }
+
+    addSections(sections) {
+        do {
+            const {section, connection} = this.getClosestSection(sections);
+            this.addSection(section, connection);
+        } while (sections.length);
+    }
+
+    getClosestSection(sections) {
+        const {start, end} = this.getStartAndEnd();
+        if (!start) {
+            const [section] = sections.splice(0, 1);
+            return {
+                section,
+                connection: Connection.END_START
+            };
         }
 
-        if (connection !== Connection.NONE) {
-            ways.splice(i, 1);
-            return {way: way, connection};
+        let minDistance = {
+            value: Number.MAX_VALUE,
+            connection: Connection.NONE
+        };
+        let minIndex;
+        for (let i = 0; i < sections.length; i += 1) {
+            const section = sections[i];
+            const distance = section.getDistanceTo(start, end);
+            if (distance.value < minDistance.value) {
+                minDistance = distance;
+                minIndex = i;
+            }
+        }
+
+        const [section] = sections.splice(minIndex, 1);
+        return {
+            section,
+            connection: minDistance.connection
+        };
+    }
+
+    addSection(section, connection) {
+        if (connection === Connection.NONE) {
+            return;
+        }
+
+        switch (connection) {
+            case Connection.END_START:
+                this.sortedSections.push(section);
+                break;
+            case Connection.END_END:
+                section.reverse();
+                this.sortedSections.push(section);
+                break;
+            case Connection.START_END:
+                this.sortedSections.unshift(section);
+                break;
+            case Connection.START_START:
+                section.reverse();
+                this.sortedSections.unshift(section);
+                break;
         }
     }
 
-    return {
-        connection: Connection.NONE
-    };
+    getWays() {
+        return _.flatten(this.sortedSections.map(s => s.getWays()))
+    }
+
+    combineWays() {
+        return this.sortedSections.map((s, i) => s.combineWays(i));
+    }
+
+    getStartAndEnd() {
+        const [firstSection, lastSection] = getFirstAndLast(this.sortedSections);
+        if (!firstSection) {
+            return {};
+        }
+
+        const start = firstSection.getStart();
+        const end = lastSection.getEnd();
+        return {
+            start,
+            end
+        };
+    }
 }
 
 function reverseWay(way) {
     way.nodes.reverse();
 }
 
-function getNextSection(sections, sortedSections) {
-    const result = getFirstAndLast(sortedSections);
-    const [firstSection, lastSection] = result;
-    const start = firstSection.getStart();
-    const end = lastSection.getEnd();
-    let minDistance = {
-        value: Number.MAX_VALUE,
-        connection: Connection.NONE
-    };
-    let minIndex;
-    for (let i = 0; i < sections.length; i += 1) {
-        const section = sections[i];
-        const distance = section.getDistanceTo(start, end);
-        if (distance.value < minDistance.value) {
-            minDistance = distance;
-            minIndex = i;
-        }
-    }
-
-    const [section] = sections.splice(minIndex, 1);
-    return {
-        section,
-        connection: minDistance.connection
-    };
-}
-
-function addSectionToSortedSections(sections, section, connection) {
-    if (connection === Connection.NONE) {
-        return;
-    }
-
-    switch (connection) {
-        case Connection.END_START:
-            sections.push(section);
-            break;
-        case Connection.END_END:
-            section.reverse();
-            sections.push(section);
-            break;
-        case Connection.START_END:
-            sections.unshift(section);
-            break;
-        case Connection.START_START:
-            section.reverse();
-            sections.unshift(section);
-            break;
-    }
-}
-
-function sortSections(sections) {
-    const sortedSections = sections.splice(0, 1);
-    do {
-        const {section, connection} = getNextSection(sections, sortedSections);
-        addSectionToSortedSections(sortedSections, section, connection);
-    } while (sections.length);
-    return sortedSections;
+function createSections(relation) {
+    const ways = relation.members.filter(({type}) => type === 'way');
+    const sections = new Sections();
+    sections.addWays(ways);
+    return sections;
 }
 
 function sortWays(relation) {
-    const ways = relation.members.filter(({type}) => type === 'way');
-    const sections = [];
-    do {
-        const [way] = ways.splice(0, 1);
-        const section = new Section(way);
-        let connection;
-        do {
-            const nextWay = getNextWay(ways, section);
-            connection = nextWay.connection;
-            section.addWay(nextWay.way, connection);
-        } while (connection !== Connection.NONE);
-        sections.push(section);
-    } while (ways.length);
-    relation.sections = sortSections(sections);
+    const sections = createSections(relation);
     const relationNodes = relation.members.filter(({type}) => type === 'node');
-    relation.members = _.flatten(relation.sections.map(s => s.ways));
+    relation.members = sections.getWays();
     relation.members.push([...relationNodes]);
 }
 
-function joinWays(relation) {
-    sortWays(relation);
+function combineWays(relation) {
+    const sections = createSections(relation);
+    const relationNodes = relation.members.filter(({type}) => type === 'node');
+    relation.members = sections.combineWays();
+    relation.members.push([...relationNodes]);
 }
 
 module.exports = {
-    sortWays
+    sortWays,
+    combineWays
 };

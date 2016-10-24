@@ -191,7 +191,7 @@ function getFromCache(relationId) {
     }
 }
 
-function getRelation(visitor, {relationId, joinWays = true}) {
+function getRelation(visitor, {relationId, combineWays = true}) {
     sendEvent(visitor, 'Get', relationId);
     const start = moment();
     return getFromCache(relationId)
@@ -199,7 +199,9 @@ function getRelation(visitor, {relationId, joinWays = true}) {
             sendEvent(visitor, outdated ? 'Cache outdated' : 'Cache miss', relationId);
             return getFullRelation(relationId)
                 .then(relation => {
-                    if (joinWays) {
+                    if (combineWays) {
+                        utils.combineWays(relation);
+                    } else {
                         utils.sortWays(relation);
                     }
 

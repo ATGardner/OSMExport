@@ -6,6 +6,7 @@ const path = require('path');
 const schedule = require('node-schedule');
 const winston = require('winston');
 const CACHE_DIR = 'cache';
+const VER = '4';
 
 function removeOldRelationFiles(relationId) {
     const relationDir = path.join(CACHE_DIR, relationId);
@@ -50,7 +51,7 @@ function init() {
 
 function get(relationId) {
     try {
-        const relationDir = path.join('cache', relationId);
+        const relationDir = path.join('cache', `${VER}-${relationId}`);
         const dirExists = fs.existsSync(relationDir);
         if (!dirExists) {
             winston.verbose(`Relation dir does not exist, relationId: ${relationId}`);
@@ -78,7 +79,7 @@ function get(relationId) {
 function put(metadata, gpx) {
     try {
         ensureDir(CACHE_DIR);
-        const relationDir = path.join(CACHE_DIR, metadata.relationId);
+        const relationDir = path.join(CACHE_DIR, `${VER}-${metadata.relationId}`);
         ensureDir(relationDir);
         metadata = _.omit(metadata, 'members');
         const metadataFileName = path.join(relationDir, 'metadata.osm');
