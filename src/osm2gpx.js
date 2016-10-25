@@ -46,7 +46,7 @@ function writeOsmNode(builder, {$id, $lat, $lon, tags: {name = null}}) {
     });
 }
 
-function writeOsmWay(builder, {nodes, $id, tags: {name = $id}, $timestamp}) {
+function writeOsmWay(builder, {nodes, $id, tags: {name = $id}, $timestamp}, limit) {
     const points = nodes.map(({$lat, $lon, tags: {name = null}}) => {
         return {
             latitude: $lat,
@@ -54,14 +54,15 @@ function writeOsmWay(builder, {nodes, $id, tags: {name = $id}, $timestamp}) {
             name
         };
     });
+    const segments = limit ? _.chunk(points, limit) : [points];
     winston.silly(`Adding way ${name}`);
     builder.addTrack({
         name,
         time: $timestamp
-    }, [points]);
+    }, segments);
 }
 
-function writeOsmRelation(builder, {members, name}) {
+function writeOsmRelation(builder, {members, name}, limit) {
     winston.silly(`Adding relation ${name}`);
     for (const member of _.castArray(members)) {
         switch (member.type) {
@@ -69,16 +70,16 @@ function writeOsmRelation(builder, {members, name}) {
                 writeOsmNode(builder, member);
                 break;
             case 'way':
-                writeOsmWay(builder, member);
+                writeOsmWay(builder, member, limit);
                 break;
             case 'relation':
-                writeOsmRelation(builder, member);
+                writeOsmRelation(builder, member, limit);
                 break;
         }
     }
 }
 
-function createGpx(relation) {
+function createGpx(relation, limit) {
     const {relationId, timestamp} = relation;
     const builder = new GpxFileBuilder();
     winston.verbose(`Creating GPX for relation ${relationId}`);
@@ -88,7 +89,7 @@ function createGpx(relation) {
         creator: 'OpenStreetMap relation export',
         time: timestamp
     });
-    writeOsmRelation(builder, relation);
+    writeOsmRelation(builder, relation, limit);
     return builder.xml();
 }
 
@@ -191,7 +192,7 @@ function getFromCache(relationId) {
     }
 }
 
-function getRelation(visitor, {relationId, combineWays = true}) {
+function getRelation(visitor, {relationId, combineWays = true, segmentLimit = 9000}) {
     sendEvent(visitor, 'Get', relationId);
     const start = moment();
     return getFromCache(relationId)
@@ -205,7 +206,7 @@ function getRelation(visitor, {relationId, combineWays = true}) {
                         utils.sortWays(relation);
                     }
 
-                    const gpx = createGpx(relation);
+                    const gpx = createGpx(relation, segmentLimit);
                     return cache.put(relation, gpx);
                 });
         })

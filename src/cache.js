@@ -8,8 +8,8 @@ const winston = require('winston');
 const CACHE_DIR = 'cache';
 const VER = '4';
 
-function removeOldRelationFiles(relationId) {
-    const relationDir = path.join(CACHE_DIR, relationId);
+function removeOldRelationFiles(dir) {
+    const relationDir = path.join(CACHE_DIR, dir);
     const files = fs.readdirSync(relationDir);
     if (_.isEmpty(files)) {
         fs.rmdirSync(relationDir);
@@ -28,8 +28,8 @@ function removeOldFiles() {
     winston.verbose('Removing old files');
     try {
         const relationDirs = fs.readdirSync(CACHE_DIR);
-        for (const relationId of relationDirs) {
-            removeOldRelationFiles(relationId);
+        for (const dir of relationDirs) {
+            removeOldRelationFiles(dir);
         }
     } catch (e) {
         winston.error('Failed removing old files', e);
