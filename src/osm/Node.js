@@ -28,6 +28,10 @@ class Node extends Element {
         builder.addWayPoints(point);
     }
 
+    distanceTo(other) {
+        return this.latLon.distanceTo(other.latLon);
+    }
+
     equals(other) {
         if (this === other) {
             return true;

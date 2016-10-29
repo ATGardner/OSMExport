@@ -123,12 +123,8 @@ class Section {
     }
 
     getDistanceTo(sections) {
-        let {start: start1, end: end1} = sections.startAndEnd;
-        start1 = start1.latLon;
-        end1 = end1.latLon;
-        let {start: start2, end: end2} = this.startAndEnd;
-        start2 = start2.latLon;
-        end2 = end2.latLon;
+        const {start: start1, end: end1} = sections.startAndEnd;
+        const {start: start2, end: end2} = this.startAndEnd;
         const distanceES = end1.distanceTo(start2);
         const distanceEE = end1.distanceTo(end2);
         const distanceSE = start1.distanceTo(end2);

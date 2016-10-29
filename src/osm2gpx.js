@@ -75,6 +75,8 @@ function getRelation(visitor, {relationId, combineWays = true, segmentLimit = 90
                         relation.sortWays();
                     }
 
+                    const distance = relation.calculateDistances();
+                    winston.verbose(`Total distance is ${distance}`);
                     const gpx = createGpx(relation, segmentLimit);
                     return cache.put(relation, gpx);
                 });

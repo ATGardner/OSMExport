@@ -40,6 +40,17 @@ class Way extends Element {
     reverse() {
         this.nodes.reverse();
     }
+
+    markDistance(prev) {
+        let node;
+        for (let i = 0; i < this.nodes.length; i += 1) {
+            node = this.nodes[i];
+            node.distance = prev ? prev.distance + prev.distanceTo(node) : 0;
+            prev = node;
+        }
+
+        return node;
+    }
 }
 
 module.exports = Way;

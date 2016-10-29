@@ -78,6 +78,15 @@ class Relation extends Element {
         this.members = sections.combineWays();
         this.members.push(...nodes);
     }
+
+    calculateDistances() {
+        let lastNode;
+        for (const w of this.ways) {
+            lastNode = w.markDistance(lastNode);
+        }
+
+        return lastNode.distance;
+    }
 }
 
 module.exports = Relation;
