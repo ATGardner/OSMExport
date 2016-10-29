@@ -13,10 +13,6 @@ if (app.get('env') === 'production') {
     app.use(ua.middleware('UA-18054605-12', {cookieName: '_ga'}));
 }
 
-function createFileName(metadata, {nameKey = 'name', name = metadata.tags[nameKey] || metadata.relationId}) {
-    return `${sanitize(name)}-${moment(metadata.timestamp).format('YY-MM-DD')}.gpx`;
-}
-
 //http://localhost:1337/osm2gpx?relationId=1660381
 //http://localhost:1337/osm2gpx?relationId=282071
 //1660381
@@ -24,10 +20,7 @@ function createFileName(metadata, {nameKey = 'name', name = metadata.tags[nameKe
 //282071
 app.get('/osm2gpx', function ({query, visitor}, res) {
     return osm2gpx.getRelation(visitor, query)
-        .then(({metadata, gpxFileName}) => {
-                const fileName = createFileName(metadata, query);
-                res.download(gpxFileName, fileName);
-            },
+        .then(gpxFileName => res.download(gpxFileName),
             ({stack}) => {
                 res.writeHead(500, {'Content-Type': 'text/plain'});
                 res.write(stack);

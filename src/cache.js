@@ -3,10 +3,11 @@ const _ = require('lodash');
 const fs = require('fs');
 const moment = require('moment');
 const path = require('path');
+const sanitize = require('sanitize-filename');
 const schedule = require('node-schedule');
 const winston = require('winston');
 const CACHE_DIR = 'cache';
-const VER = '4';
+const VER = '5';
 
 function removeOldRelationFiles(dir) {
     const relationDir = path.join(CACHE_DIR, dir);
@@ -64,32 +65,28 @@ function get(relationId) {
             return;
         }
 
-        const metadataFileName = path.join(relationDir, 'metadata.osm');
-        const metadata = JSON.parse(fs.readFileSync(metadataFileName));
-        const gpxFileName = path.join(relationDir, 'data.gpx');
+        const gpxFileName = path.join(relationDir, files[0]);
+        const stat = fs.statSync(gpxFileName);
+        const cachedTimestamp = stat.birthtime;
         return {
-            metadata,
-            gpxFileName
-        };
+            gpxFileName,
+            cachedTimestamp
+        }
     } catch (e) {
         winston.error('Failed getting from cache', e);
     }
 }
 
-function put(metadata, gpx) {
+function put(relation, gpx) {
     try {
         ensureDir(CACHE_DIR);
-        const relationDir = path.join(CACHE_DIR, `${VER}-${metadata.relationId}`);
+        const relationDir = path.join(CACHE_DIR, `${VER}-${relation.id}`);
         ensureDir(relationDir);
-        metadata = _.omit(metadata, 'members');
-        const metadataFileName = path.join(relationDir, 'metadata.osm');
-        fs.writeFileSync(metadataFileName, JSON.stringify(metadata));
-        const gpxFileName = path.join(relationDir, 'data.gpx');
+        const name = sanitize(relation.getName());
+        const timestamp = moment(relation.timestamp).format('YY-MM-DD');
+        const gpxFileName = path.join(relationDir, `${name}-${timestamp}.gpx`);
         fs.writeFileSync(gpxFileName, gpx);
-        return {
-            metadata,
-            gpxFileName
-        };
+        return gpxFileName;
     } catch (e) {
         winston.error('Failed putting into cache', e);
         throw e;
