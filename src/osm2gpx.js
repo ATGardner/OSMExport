@@ -61,21 +61,21 @@ function getFromCache(relationId) {
     }
 }
 
-function getRelation(visitor, {relationId, combineWays = true, segmentLimit = 9000}) {
+function getRelation(visitor, {relationId, combineWays = "true", segmentLimit = 9000, useCache = "true", markerDiff = 1000}) {
     sendEvent(visitor, 'Get', relationId);
     const start = moment();
-    return getFromCache(relationId)
+    return (useCache === "true" ? getFromCache(relationId) : Promise.reject(false))
         .catch(outdated => {
             sendEvent(visitor, outdated ? 'Cache outdated' : 'Cache miss', relationId);
             return osmWrapper.getFullRelation(relationId)
                 .then(relation => {
-                    if (combineWays) {
+                    if (combineWays === "true") {
                         relation.combineWays();
                     } else {
                         relation.sortWays();
                     }
 
-                    const distance = relation.calculateDistances();
+                    const distance = relation.calculateDistances(markerDiff);
                     winston.verbose(`Total distance is ${distance}`);
                     const gpx = createGpx(relation, segmentLimit);
                     return cache.put(relation, gpx);

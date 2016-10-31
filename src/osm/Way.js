@@ -3,6 +3,11 @@ const _ = require('lodash');
 const Element = require('./Element');
 const moment = require('moment');
 
+function createMarkerNode(start, end, distance) {
+    const bearing = start.bearingTo(end);
+    const latLon = start.destinationPoint(distance, bearing);
+}
+
 class Way extends Element {
     get timestamp() {
         return moment(this.element.$timestamp);
@@ -41,15 +46,30 @@ class Way extends Element {
         this.nodes.reverse();
     }
 
-    markDistance(prev) {
+    markDistance(prev, markerDiff) {
         let node;
+        let prevMarker = prev ? Math.floor(prev.distance / markerDiff) : 0;
+        const markerNodes = [];
         for (let i = 0; i < this.nodes.length; i += 1) {
             node = this.nodes[i];
-            node.distance = prev ? prev.distance + prev.distanceTo(node) : 0;
+            const distance = prev ? prev.distance + prev.distanceTo(node) : 0;
+            node.distance = distance;
+            const nextMarker = Math.floor(distance / markerDiff);
+            if (distance % markerDiff === 0) {
+                markerNodes.push(node);
+            } else if (prevMarker < nextMarker) {
+                prevMarker = nextMarker;
+                const prevNode = i === 0 ? prev : this.nodes[i - 1];
+                const bearing = prevNode.initialBearingTo(node);
+                const distance = (prevMarker - prevNode.distance / markerDiff) * markerDiff;
+                const markerNode = prevNode.destinationPoint(distance, bearing, prevMarker);
+                markerNodes.push(markerNode);
+            }
+
             prev = node;
         }
 
-        return node;
+        return markerNodes;
     }
 }
 

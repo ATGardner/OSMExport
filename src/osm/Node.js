@@ -32,6 +32,20 @@ class Node extends Element {
         return this.latLon.distanceTo(other.latLon);
     }
 
+    initialBearingTo(other) {
+        return this.latLon.initialBearingTo(other.latLon);
+    }
+
+    destinationPoint(distance, bearing, $id) {
+        const {lat: $lat, lon: $lon} = this.latLon.destinationPoint(distance, bearing);
+        return new Node({
+            $id,
+            $lat,
+            $lon,
+            tags: {}
+        });
+    }
+
     equals(other) {
         if (this === other) {
             return true;

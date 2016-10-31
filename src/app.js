@@ -13,8 +13,8 @@ if (app.get('env') === 'production') {
     app.use(ua.middleware('UA-18054605-12', {cookieName: '_ga'}));
 }
 
-//http://localhost:1337/osm2gpx?relationId=1660381
-//http://localhost:1337/osm2gpx?relationId=282071
+//http://localhost:1337/osm2gpx?useCache=false&relationId=1660381&combineWays=false
+//http://localhost:1337/osm2gpx?relationId=282071&useCache=false&markerDiff=1609.34
 //1660381
 //5775913
 //282071

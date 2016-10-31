@@ -79,13 +79,13 @@ class Relation extends Element {
         this.members.push(...nodes);
     }
 
-    calculateDistances() {
-        let lastNode;
+    calculateDistances(markerDiff) {
+        let endNode = undefined;
         for (const w of this.ways) {
-            lastNode = w.markDistance(lastNode);
+            const markerNodes = w.markDistance(endNode, markerDiff);
+            endNode = w.end;
+            this.members.push(...markerNodes);
         }
-
-        return lastNode.distance;
     }
 }
 
