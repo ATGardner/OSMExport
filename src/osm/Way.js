@@ -36,10 +36,12 @@ class Way extends Element {
     createGpx(builder, limit) {
         const points = this.nodes.map(n => n.getPointData());
         const segments = limit ? _.chunk(points, limit) : [points];
-        builder.addTrack({
-            name: this.getName(),
-            time: this.timestamp
-        }, segments);
+        for (let i = 0; i < segments.length; i += 1) {
+            builder.addTrack({
+                name: `${this.getName()}-seg${i}`,
+                time: this.timestamp
+            }, [segments[i]]);
+        }
     }
 
     reverse() {
