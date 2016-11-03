@@ -2,7 +2,8 @@
 const _ = require('lodash');
 
 function transformTags(tags = []) {
-    return new Map(Object.keys(tags).map(k => [k, tags[k]]));
+    tags = _.castArray(tags);
+    return new Map(tags.map(({$k, $v}) => [$k, $v]));
 }
 
 class Element {
