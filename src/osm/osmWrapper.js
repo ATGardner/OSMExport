@@ -24,8 +24,11 @@ function getSubRelations(relation, full) {
 function getFullRelation(relationId) {
     winston.verbose(`Getting full relation '${relationId}'`);
     return osmApi.fetchRelation(relationId, true)
-        .then(({osm}) => {
-            const relation = new Relation(osm);
+        .then(({elements}) => {
+            const relations = elements.filter(e => e.type === 'relation');
+            const ways = elements.filter(e => e.type === 'way');
+            const nodes = elements.filter(e => e.type === 'node');
+            const relation = new Relation(relations, ways, nodes);
             return getSubRelations(relation, true)
                 .then(subRelations => {
                     relation.subRelations = subRelations;

@@ -13,14 +13,12 @@
     "express": "^4.14.0",
     "geodesy": "^1.1.1",
     "gpx": "git+https://github.com/kchapelier/gpx.git",
-    "jxon": "^2.0.0-beta.3",
-    "lodash": "^4.16.4",
-    "moment": "^2.15.1",
-    "node-fetch": "^1.6.3",
-    "node-schedule": "^1.2.0",
+    "isomorphic-fetch": "^2.2.1",
+    "lodash": "^4.16.6",
+    "moment": "^2.15.2",
     "sanitize-filename": "^1.6.1",
     "universal-analytics": "^0.4.6",
-    "winston": "^2.2.0"
+    "winston": "^2.3.0"
   },
   "engines": {
     "node": "^7.0.0"

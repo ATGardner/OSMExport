@@ -8,7 +8,7 @@ const Way = require('./Way');
 
 class Relation extends Element {
     get timestamp() {
-        return moment(this.element.$timestamp);
+        return moment(this.element.timestamp);
     }
 
     get subRelationIds() {
@@ -34,22 +34,22 @@ class Relation extends Element {
         return this.members.filter(m => m instanceof Relation);
     }
 
-    constructor({relation = [], node = [], way = []}) {
-        relation = _.castArray(relation);
-        super(relation[0]);
-        if (this.element.member) {
-            const nodesMap = new Map(node.map(n => [n.$id, new Node(n)]));
-            const wayMap = new Map(way.map(w => [w.$id, new Way(w, nodesMap)]));
-            const relationsMap = new Map(relation.filter(r => r.$id !== this.id).map(r => [r.$id, new Relation({relation: r})]));
-            relationsMap.delete(this.id);
-            this.members = this.element.member.map(({$type, $ref}) => {
-                switch ($type) {
+    constructor(relations, ways, nodes) {
+        relations = _.castArray(relations);
+        const [relation] = relations;
+        super(relation);
+        if (relation.members) {
+            const nodesMap = new Map(nodes.map(n => [n.id, new Node(n)]));
+            const wayMap = new Map(ways.map(w => [w.id, new Way(w, nodesMap)]));
+            const relationsMap = new Map(relations.filter(r => r.id !== relation.id).map(r => [r.id, new Relation({relation: r})]));
+            this.members = relation.members.map(({type, ref}) => {
+                switch (type) {
                     case 'node':
-                        return nodesMap.get($ref);
+                        return nodesMap.get(ref);
                     case 'way':
-                        return wayMap.get($ref);
+                        return wayMap.get(ref);
                     case 'relation':
-                        return relationsMap.get($ref);
+                        return relationsMap.get(ref);
                 }
             });
         }

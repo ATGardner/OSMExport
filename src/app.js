@@ -36,9 +36,9 @@ function sendTiming(visitor, variable, time) {
     }
 }
 
-//http://localhost:1337/osm2gpx?relationId=1660381&useCache=0&combineWays=0
-//http://localhost:1337/osm2gpx?relationId=282071&useCache=0&combineWays=0
-//http://localhost:1337/osm2gpx?relationId=282071&useCache=0&markerDiff=1609.34
+//http://localhost:3000/osm2gpx?relationId=1660381&useCache=0&combineWays=0
+//http://localhost:3000/osm2gpx?relationId=282071&useCache=0&combineWays=0
+//http://localhost:3000/osm2gpx?relationId=282071&useCache=0&markerDiff=1609.34
 //1660381
 //5775913
 //282071
@@ -57,12 +57,12 @@ app.get('/osm2gpx', ({query, query: {relationId}, visitor}, res) => {
                 });
                 return res.send(gpx);
             },
-            ({stack}) => {
+            error => {
                 const end = moment().diff(start);
                 sendTiming(visitor, 'failureTime', end);
                 sendEvent(visitor, 'Error', `${relationId} - ${error}`);
                 res.writeHead(500, {'Content-Type': 'text/plain'});
-                res.write(stack);
+                res.write(error.stack);
                 res.send();
             }
         );

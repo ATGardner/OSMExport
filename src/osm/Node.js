@@ -4,11 +4,11 @@ const Element = require('./Element');
 
 class Node extends Element {
     get lat() {
-        return this.element.$lat;
+        return this.element.lat;
     }
 
     get lon() {
-        return this.element.$lon;
+        return this.element.lon;
     }
 
     get latLon() {
@@ -36,12 +36,12 @@ class Node extends Element {
         return this.latLon.initialBearingTo(other.latLon);
     }
 
-    destinationPoint(distance, bearing, $id) {
-        const {lat: $lat, lon: $lon} = this.latLon.destinationPoint(distance, bearing);
+    destinationPoint(distance, bearing, id) {
+        const {lat, lon} = this.latLon.destinationPoint(distance, bearing);
         return new Node({
-            $id,
-            $lat,
-            $lon,
+            id,
+            lat,
+            lon,
             tags: {}
         });
     }

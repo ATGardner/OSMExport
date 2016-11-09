@@ -3,14 +3,9 @@ const _ = require('lodash');
 const Element = require('./Element');
 const moment = require('moment');
 
-function createMarkerNode(start, end, distance) {
-    const bearing = start.bearingTo(end);
-    const latLon = start.destinationPoint(distance, bearing);
-}
-
 class Way extends Element {
     get timestamp() {
-        return moment(this.element.$timestamp);
+        return moment(this.element.timestamp);
     }
 
     get start() {
@@ -30,7 +25,7 @@ class Way extends Element {
 
     constructor(way, nodesMap) {
         super(way);
-        this.nodes = way.nd.map(({$ref}) => nodesMap.get($ref));
+        this.nodes = way.nodes.map(id => nodesMap.get(id));
     }
 
     createGpx(builder, limit) {
