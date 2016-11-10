@@ -6,7 +6,7 @@ class Element {
     }
 
     get id() {
-        return this.element.$id;
+        return this.element.id;
     }
 
     get tags() {
