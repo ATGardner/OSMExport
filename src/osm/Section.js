@@ -103,10 +103,10 @@ class Section {
     combineWays(id) {
         const [firstWay] = this.ways;
         const way = new Way({
-            $id: `combined-${id}`,
-            $timestamp: moment.max(...this.ways.map(w => moment(w.$timestamp))).toISOString(),
+            id: `combined-${id}`,
+            timestamp: moment.max(...this.ways.map(w => w.timestamp)).toISOString(),
             tags: {},
-            nd: []
+            nodes: []
         });
         way.nodes = firstWay.nodes.slice(0);
         for (let i = 1; i < this.ways.length; i += 1) {

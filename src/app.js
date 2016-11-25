@@ -36,9 +36,9 @@ function sendTiming(visitor, variable, time) {
     }
 }
 
-//http://localhost:3000/osm2gpx?relationId=1660381&useCache=0&combineWays=0
-//http://localhost:3000/osm2gpx?relationId=282071&useCache=0&combineWays=0
-//http://localhost:3000/osm2gpx?relationId=282071&useCache=0&markerDiff=1609.34
+//http://localhost:3000/osm2gpx?relationId=1660381&combineWays=0
+//http://localhost:3000/osm2gpx?relationId=282071&combineWays=1&segmentLimit=0
+//http://localhost:3000/osm2gpx?relationId=282071&markerDiff=1609.34
 //1660381
 //5775913
 //282071

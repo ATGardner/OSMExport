@@ -19,7 +19,7 @@ function createGpx(relation, name, limit) {
 function getRelation({relationId, combineWays = 1, segmentLimit = 9000, markerDiff = 1000, name, nameKey}) {
     return osmWrapper.getFullRelation(relationId)
         .then(relation => {
-            if (combineWays === 1) {
+            if (combineWays === '1') {
                 relation.combineWays();
             } else {
                 relation.sortWays();
@@ -29,7 +29,7 @@ function getRelation({relationId, combineWays = 1, segmentLimit = 9000, markerDi
             name = name || relation.getName(nameKey);
             const timestamp = relation.timestamp.format('YY-MM-DD');
             const fileName = `${name}-${timestamp}.gpx`;
-            const gpx = createGpx(relation, name, segmentLimit);
+            const gpx = createGpx(relation, name, +segmentLimit);
             return {
                 fileName,
                 gpx
