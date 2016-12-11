@@ -16,7 +16,7 @@
     "isomorphic-fetch": "^2.2.1",
     "lodash": "^4.16.6",
     "moment": "^2.15.2",
-    "sanitize-filename": "^1.6.1",
+    "slug": "^0.9.1",
     "universal-analytics": "^0.4.6",
     "winston": "^2.3.0"
   },

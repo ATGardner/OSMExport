@@ -1,4 +1,6 @@
 'use strict';
+//LatLonEllipsoidal 1002930.5110000009
+//LatLonSpherical 1003460.2922341473
 const LatLon = require('geodesy').LatLonEllipsoidal;
 const Element = require('./Element');
 

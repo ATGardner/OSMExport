@@ -1,12 +1,14 @@
 'use strict';
 const express = require('express');
 const moment = require('moment');
-const sanitize = require('sanitize-filename');
+// const sanitize = require('sanitize-filename');
+const slug = require('slug');
 const ua = require('universal-analytics');
 const winston = require('winston');
 const osm2gpx = require('./osm2gpx');
 const app = express();
 
+slug.defaults.mode ='rfc3986';
 winston.level = 'verbose';
 if (app.get('env') === 'production') {
     app.use(ua.middleware('UA-18054605-12', {cookieName: '_ga'}));
@@ -37,7 +39,8 @@ function sendTiming(visitor, variable, time) {
 }
 
 //http://localhost:3000/osm2gpx?relationId=1660381&combineWays=0
-//http://localhost:3000/osm2gpx?relationId=282071&combineWays=1&segmentLimit=0
+//http://localhost:3000/osm2gpx?relationId=282071&combineWays=1&segmentLimit=9000
+//http://localhost:3000/osm2gpx?relationId=6738379&combineWays=1&segmentLimit=9000
 //http://localhost:3000/osm2gpx?relationId=282071&markerDiff=1609.34
 //1660381
 //5775913
@@ -50,7 +53,14 @@ app.get('/osm2gpx', ({query, query: {relationId}, visitor}, res) => {
             ({fileName, gpx}) => {
                 const end = moment().diff(start);
                 sendTiming(visitor, 'getRelationTime', end);
-                fileName = encodeURI(sanitize(fileName));
+                fileName = encodeURI(slug(fileName, {
+                    replacement: c => c,      // replace spaces with replacement
+                    symbols: true,         // replace unicode symbols or not
+                    remove: null,          // (optional) regex to remove characters
+                    lower: false,           // result in lower case
+                    charmap: slug.charmap, // replace special characters
+                    multicharmap: slug.multicharmap // replace multi-characters
+                }));
                 res.set({
                     'Content-Disposition': `attachment; filename="${fileName}"`,
                     'Content-Type': 'application/xml'
