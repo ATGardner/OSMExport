@@ -8,7 +8,7 @@ const winston = require('winston');
 const osm2gpx = require('./osm2gpx');
 const app = express();
 
-slug.defaults.mode ='rfc3986';
+slug.defaults.mode = 'rfc3986';
 winston.level = 'verbose';
 if (app.get('env') === 'production') {
     app.use(ua.middleware('UA-18054605-12', {cookieName: '_ga'}));
@@ -71,9 +71,58 @@ app.get('/osm2gpx', ({query, query: {relationId}, visitor}, res) => {
                 const end = moment().diff(start);
                 sendTiming(visitor, 'failureTime', end);
                 sendEvent(visitor, 'Error', `${relationId} - ${error}`);
-                res.writeHead(500, {'Content-Type': 'text/plain'});
-                res.write(error.stack);
-                res.send();
+                res.set('Content-Type', 'text/plain')
+                    .status(500)
+                    .send(error.stack);
+            }
+        );
+});
+
+//http://localhost:3000/osm2poi?relationId=2820771&segmentLimit=9000
+app.get('/osm2poi', ({query, query: {relationId}, visitor}, res) => {
+    const start = moment();
+    sendEvent(visitor, 'Getting POIs', relationId);
+    return osm2gpx.getPois(query)
+        .then(
+            result => {
+                const end = moment().diff(start);
+                sendTiming(visitor, 'getPoisTime', end);
+                res.set({
+                    'Content-Type': 'application/json'
+                });
+                res.json({
+                    type: 'FeatureCollection',
+                    features: [
+                        {
+                            type: 'Feature',
+                            geometry: {
+                                type: 'Point',
+                                coordinates: [100.0, 0.0]
+                            },
+                            properties: {
+                                name: 'blah'
+                            }
+                        },
+                        {
+                            type: 'Feature',
+                            geometry: {
+                                type: 'Point',
+                                coordinates: [200.0, 20.0]
+                            },
+                            properties: {
+                                name: 'qwer'
+                            }
+                        }
+                    ]
+                });
+            },
+            error => {
+                const end = moment().diff(start);
+                sendTiming(visitor, 'failureTime', end);
+                sendEvent(visitor, 'Error', `${relationId} - ${error}`);
+                res.set('Content-Type', 'text/plain')
+                    .status(500)
+                    .send(error.stack);
             }
         );
 });

@@ -25,21 +25,31 @@ function getRelation({relationId, combineWays = 1, segmentLimit = 9000, markerDi
                 relation.sortWays();
             }
 
-            return osmWrapper.getWater(relationId)
-                .then(waterNodes => {
-                    relation.calculateDistances(markerDiff);
-                    name = name || relation.getName(nameKey);
-                    const timestamp = relation.timestamp.format('YY-MM-DD');
-                    const fileName = `${name}-${timestamp}.gpx`;
-                    const gpx = createGpx(relation, name, +segmentLimit);
-                    return {
-                        fileName,
-                        gpx
-                    };
-                });
+            relation.calculateDistances(markerDiff);
+            name = name || relation.getName(nameKey);
+            const timestamp = relation.timestamp.format('YY-MM-DD');
+            const fileName = `${name}-${timestamp}.gpx`;
+            const gpx = createGpx(relation, name, +segmentLimit);
+            return {
+                fileName,
+                gpx
+            };
         });
 }
 
+function getPois({relationId, markerDiff = 1000}) {
+    return Promise.all([
+            osmWrapper.getFullRelation(relationId),
+            osmWrapper.getWater(relationId)
+        ]
+    ).then(([relation, waterNodes]) => {
+        relation.sortWays();
+        relation.calculateDistances(markerDiff);
+        relation.addNodes(waterNodes);
+    });
+}
+
 module.exports = {
-    getRelation
+    getRelation,
+    getPois
 };

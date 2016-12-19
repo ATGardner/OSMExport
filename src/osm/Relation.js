@@ -87,6 +87,35 @@ class Relation extends Element {
             this.members.push(...markerNodes);
         }
     }
+
+    * getAllNodes() {
+        yield * this.nodes;
+        for (const way of this.ways) {
+            yield * way.nodes;
+        }
+
+        for (const sub of this.relations) {
+            yield * sub.getAllNodes();
+        }
+    }
+
+    addNodes(nodes) {
+        for (const node of nodes) {
+            let minDistance = Number.MAX_VALUE;
+            let closestNode = undefined;
+            for (const n2 of this.getAllNodes()) {
+                const distance = node.distanceTo(n2);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestNode = n2;
+                }
+            }
+
+            node.distance = closestNode.distance;
+            node.offTrail = minDistance;
+            this.members.push(node);
+        }
+    }
 }
 
 module.exports = Relation;
