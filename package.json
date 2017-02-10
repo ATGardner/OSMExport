@@ -4,7 +4,8 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "cmd": "node commandLine.js"
   },
   "author": "",
   "license": "ISC",
@@ -18,7 +19,8 @@
     "moment": "^2.15.2",
     "slug": "^0.9.1",
     "universal-analytics": "^0.4.6",
-    "winston": "^2.3.0"
+    "winston": "^2.3.0",
+    "yargs": "^6.6.0"
   },
   "engines": {
     "node": "^7.0.0"

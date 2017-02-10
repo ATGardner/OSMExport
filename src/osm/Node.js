@@ -17,6 +17,10 @@ class Node extends Element {
         return new LatLon(this.lat, this.lon);
     }
 
+    get type() {
+        return 'Node';
+    }
+
     getPointData() {
         return {
             latitude: this.lat,
@@ -31,7 +35,7 @@ class Node extends Element {
     }
 
     distanceTo(other) {
-        return this.latLon.distanceTo(other.latLon);
+        return this.equals(other) ? 0 : this.latLon.distanceTo(other.latLon);
     }
 
     initialBearingTo(other) {

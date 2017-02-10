@@ -55,7 +55,7 @@ app.get('/osm2gpx', ({query, query: {relationId}, visitor}, res) => {
                 sendTiming(visitor, 'getRelationTime', end);
                 fileName = encodeURI(slug(fileName, {
                     replacement: c => c,      // replace spaces with replacement
-                    symbols: true,         // replace unicode symbols or not
+                    symbols: false,         // replace unicode symbols or not
                     remove: null,          // (optional) regex to remove characters
                     lower: false,           // result in lower case
                     charmap: slug.charmap, // replace special characters
