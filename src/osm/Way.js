@@ -3,6 +3,14 @@ const _ = require('lodash');
 const Element = require('./Element');
 const moment = require('moment');
 
+function fixGaps(segments) {
+  for (let i = 0; i < segments.length - 1; i += 1) {
+    const segment = segments[i];
+    const [firstNodeOfNextSegment] = segments[i + 1];
+    segment.push(firstNodeOfNextSegment);
+  }
+}
+
 class Way extends Element {
   get timestamp() {
     return moment(this.element.timestamp);
@@ -34,7 +42,8 @@ class Way extends Element {
 
   createGpx(builder, limit) {
     const points = this.nodes.map(n => n.getPointData());
-    const segments = limit ? _.chunk(points, limit) : [points];
+    const segments = limit > 1 ? _.chunk(points, limit - 1) : [points];
+    fixGaps(segments);
     for (let i = 0; i < segments.length; i += 1) {
       builder.addTrack(
         {
