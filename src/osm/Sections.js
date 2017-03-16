@@ -100,6 +100,11 @@ class Sections {
     combineWays() {
         return this.sortedSections.map((s, i) => s.combineWays(i));
     }
+
+    reverse() {
+      this.sortedSections.map(s => s.reverse());
+      this.sortedSections.reverse();
+    }
 }
 
 module.exports = Sections;

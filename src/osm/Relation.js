@@ -72,6 +72,7 @@ class Relation extends Element {
   createSections() {
     const sections = new Sections();
     sections.addWays(this.ways);
+    //sections.reverse();
     return sections;
   }
 
