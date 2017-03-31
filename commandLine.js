@@ -1,6 +1,6 @@
 const fs = require('fs');
 const winston = require('winston');
-const { getRelation } = require('./src/osm2gpx');
+const {getRelation} = require('./src/osm2gpx');
 
 winston.level = 'verbose';
 
@@ -34,17 +34,24 @@ const argv = require('yargs')
       default: 1000,
       describe: 'The distance between markers. "0" to disable markers',
       type: 'number'
+    },
+    rev: {
+      alias: 'reverse',
+      default: false,
+      describe: 'Reverse way sort and marker order',
+      type: 'bool'
     }
   })
   .help('h')
   .alias('h', 'help')
   .epilog('copyright 2015').argv;
 
-getRelation(argv).then(
-  ({ fileName, gpx }) => {
+(async function () {
+  try {
+    const {fileName, gpx} = await getRelation(argv);
     fs.writeFileSync(fileName, gpx);
-  },
-  error => {
+  } catch (error) {
     console.error(error);
   }
-);
+})();
+

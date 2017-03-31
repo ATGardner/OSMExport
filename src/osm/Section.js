@@ -96,10 +96,6 @@ class Section {
         }
     }
 
-    getWays() {
-        return this.ways;
-    }
-
     combineWays(id) {
         const [firstWay] = this.ways;
         const way = new Way({
