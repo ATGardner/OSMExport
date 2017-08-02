@@ -76,16 +76,24 @@ class Relation extends Element {
     return sections;
   }
 
-  sortWays() {
+  sortWays(reverse) {
     const nodes = this.nodes;
     const sections = this.createSections();
-    this.members = sections.getWays();
+    if (reverse) {
+      sections.reverse();
+    }
+
+    this.members = sections.ways;
     this.members.push(...nodes);
   }
 
-  combineWays() {
+  combineWays(reverse) {
     const nodes = this.nodes;
     const sections = this.createSections();
+    if (reverse) {
+      sections.reverse();
+    }
+
     this.members = sections.combineWays();
     this.members.push(...nodes);
   }

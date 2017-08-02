@@ -4,7 +4,7 @@ const winston = require('winston');
 const osmWrapper = require('./osm/osmWrapper');
 
 function createGpx(relation, name, limit) {
-  const { id, timestamp } = relation;
+  const {id, timestamp} = relation;
   const builder = new GpxFileBuilder({
     description: 'Data extracted from OSM',
     name,
@@ -16,46 +16,41 @@ function createGpx(relation, name, limit) {
   return builder.xml();
 }
 
-function getRelation(
-  {
-    relationId,
-    combineWays = true,
-    segmentLimit = 9000,
-    markerDiff = 1000,
-    name,
-    nameKey
+async function getRelation({
+                             relationId,
+                             combineWays = true,
+                             segmentLimit = 9000,
+                             markerDiff = 1000,
+                             name,
+                             nameKey,
+                             reverse
+                           }) {
+  const relation = await osmWrapper.getFullRelation(relationId);
+  if (combineWays || combineWays === '1') {
+    relation.combineWays(reverse);
+  } else {
+    relation.sortWays(reverse);
   }
-) {
-  return osmWrapper.getFullRelation(relationId).then(relation => {
-    if (combineWays || combineWays === '1') {
-      relation.combineWays();
-    } else {
-      relation.sortWays();
-    }
 
-    relation.calculateDistances(markerDiff);
-    name = name || relation.getName(nameKey);
-    const timestamp = relation.timestamp.format('YY-MM-DD');
-    const fileName = `${name}-${timestamp}.gpx`;
-    const gpx = createGpx(relation, name, +segmentLimit);
-    return {
-      fileName,
-      gpx
-    };
-  });
+  relation.calculateDistances(markerDiff);
+  name = name || relation.getName(nameKey);
+  const timestamp = relation.timestamp.format('YY-MM-DD');
+  const fileName = `${name}-${timestamp}.gpx`;
+  const gpx = createGpx(relation, name, +segmentLimit);
+  return {
+    fileName,
+    gpx
+  };
 }
 
-function getPois({ relationId, markerDiff = 1000 }) {
-  return Promise
-    .all([
-      osmWrapper.getFullRelation(relationId),
-      osmWrapper.getWater(relationId)
-    ])
-    .then(([relation, waterNodes]) => {
-      relation.sortWays();
-      relation.calculateDistances(markerDiff);
-      relation.addNodes(waterNodes);
-    });
+async function getPois({relationId, markerDiff = 1000}) {
+  const [relation, waterNodes] = await Promise.all([
+    osmWrapper.getFullRelation(relationId),
+    osmWrapper.getWater(relationId)
+  ]);
+  relation.sortWays();
+  relation.calculateDistances(markerDiff);
+  relation.addNodes(waterNodes);
 }
 
 module.exports = {
