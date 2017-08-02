@@ -4,6 +4,10 @@ const Connection = require('./Connection');
 const Section = require('./Section');
 
 class Sections {
+  constructor() {
+    this.sortedSections = [];
+  }
+
   get start() {
     return this.sortedSections[0].start;
   }
@@ -19,8 +23,8 @@ class Sections {
     };
   }
 
-  constructor() {
-    this.sortedSections = [];
+  get ways() {
+    return _.flatten(this.sortedSections.map(s => s.ways));
   }
 
   addWays(ways) {
@@ -35,7 +39,7 @@ class Sections {
 
   addSections(sections) {
     do {
-      const {section, connection} = this.getClosestSection(sections);
+      const { section, connection } = this.getClosestSection(sections);
       this.addSection(section, connection);
     } while (sections.length);
   }
@@ -93,21 +97,18 @@ class Sections {
     }
   }
 
-  get ways() {
-    return _.flatten(this.sortedSections.map(s => s.ways));
-  }
-
   combineWays() {
-    return this.sortedSections/*.reverse()*/.map((s, i) => {
-      s.reverse();
-      return s.combineWays(i);
-    });
+    return this.sortedSections//.reverse()
+      .map((s, i) => {
+        // s.reverse();
+        return s.combineWays(i);
+      });
   }
 
-    reverse() {
-      this.sortedSections.map(s => s.reverse());
-      this.sortedSections.reverse();
-    }
+  reverse() {
+    this.sortedSections.map(s => s.reverse());
+    this.sortedSections.reverse();
+  }
 }
 
 module.exports = Sections;

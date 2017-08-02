@@ -22,13 +22,14 @@ async function getRelation({
                              segmentLimit = 9000,
                              markerDiff = 1000,
                              name,
-                             nameKey
+                             nameKey,
+                             reverse
                            }) {
   const relation = await osmWrapper.getFullRelation(relationId);
   if (combineWays || combineWays === '1') {
-    relation.combineWays();
+    relation.combineWays(reverse);
   } else {
-    relation.sortWays();
+    relation.sortWays(reverse);
   }
 
   relation.calculateDistances(markerDiff);

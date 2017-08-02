@@ -1,7 +1,6 @@
 'use strict';
 const express = require('express');
 const moment = require('moment');
-// const sanitize = require('sanitize-filename');
 const slug = require('slug');
 const ua = require('universal-analytics');
 const winston = require('winston');
@@ -41,10 +40,8 @@ function sendTiming(visitor, variable, time) {
 //http://localhost:3000/osm2gpx?relationId=1660381&combineWays=0
 //http://localhost:3000/osm2gpx?relationId=282071&combineWays=1&segmentLimit=9000
 //http://localhost:3000/osm2gpx?relationId=6738379&combineWays=1&segmentLimit=9000
-//http://localhost:3000/osm2gpx?relationId=282071&markerDiff=1609.34
-//1660381
-//5775913
-//282071
+//INT - http://localhost:3000/osm2gpx?relationId=282071&markerDiff=1609.34
+//JMT - http://localhost:3000/osm2gpx?relationId=1244828&markerDiff=1609.34&reverse=1&segmentLimit=0
 app.get('/osm2gpx', async ({query, query: {relationId}, visitor}, res) => {
   const start = moment();
   sendEvent(visitor, 'Creating gpx', relationId);

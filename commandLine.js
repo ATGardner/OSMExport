@@ -5,7 +5,7 @@ const {getRelation} = require('./src/osm2gpx');
 winston.level = 'verbose';
 
 const argv = require('yargs')
-  .usage('node Usage: $0 <command> [options]')
+  .usage('Usage: $0 <command> [options]')
   .example(
     'node $0 -r 282071',
     'Exports the Israel National Trail into a gpx file'
