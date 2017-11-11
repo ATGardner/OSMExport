@@ -17,12 +17,6 @@ const argv = require('yargs')
       describe: 'Open Street Maps Relation Id to export',
       type: 'number'
     },
-    c: {
-      alias: 'combineWays',
-      default: true,
-      describe: 'Combine OSM ways to gpx tracks, or leave original ways',
-      type: 'bool'
-    },
     s: {
       alias: 'segmentLimit',
       default: 9000,

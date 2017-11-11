@@ -1,59 +1,124 @@
 'use strict';
-const GpxFileBuilder = require('gpx').GpxFileBuilder;
+const _ = require('lodash');
+const moment = require('moment');
+const {GpxFileBuilder} = require('gpx');
+const LatLon = require('geodesy').LatLonEllipsoidal;
 const winston = require('winston');
 const osmWrapper = require('./osm/osmWrapper');
 
-function createGpx(relation, name, limit) {
-  const {id, timestamp} = relation;
+function createGpx(
+  {id, geometry: {coordinates, type}, properties: {name, timestamp}},
+  markers,
+  limit,
+) {
   const builder = new GpxFileBuilder({
     description: 'Data extracted from OSM',
     name,
     creator: 'OpenStreetMap relation export',
-    time: timestamp
+    time: timestamp,
   });
   winston.verbose(`Creating GPX for relation ${id}`);
-  relation.createGpx(builder, limit);
+  const ways = type === 'LineString' ? [coordinates] : coordinates;
+  ways.forEach((way, i) => {
+    const pointData = way.map(([longitude, latitude]) => ({
+      latitude,
+      longitude,
+    }));
+    const segments = limit > 1 ? _.chunk(pointData, limit) : [pointData];
+    segments.forEach((segment, j) => {
+      builder.addTrack(
+        {
+          name: `${name}-way${i}-seg${j}`,
+          time: timestamp,
+        },
+        segment,
+      );
+    });
+  });
+  markers.forEach(
+    ({
+      properties: {marker},
+      geometry: {coordinates: [longitude, latitude]},
+    }) => {
+      builder.addWayPoints({
+        latitude,
+        longitude,
+        name: marker,
+      });
+    },
+  );
   return builder.xml();
 }
 
-async function getRelation({
-                             relationId,
-                             combineWays = true,
-                             segmentLimit = 9000,
-                             markerDiff = 1000,
-                             name,
-                             nameKey,
-                             reverse
-                           }) {
-  const relation = await osmWrapper.getFullRelation(relationId);
-  if (combineWays || combineWays === '1') {
-    relation.combineWays(reverse);
-  } else {
-    relation.sortWays(reverse);
-  }
-
-  relation.calculateDistances(markerDiff);
-  name = name || relation.getName(nameKey);
-  const timestamp = relation.timestamp.format('YY-MM-DD');
-  const fileName = `${name}-${timestamp}.gpx`;
-  const gpx = createGpx(relation, name, +segmentLimit);
+function createMarkerFeature(lat, lon, marker) {
   return {
-    fileName,
-    gpx
+    type: 'Feature',
+    properties: {
+      marker,
+    },
+    geometry: {
+      type: 'Point',
+      coordinates: [lon, lat],
+    },
   };
 }
 
-async function getPois({relationId, markerDiff = 1000}) {
-  const [relation, waterNodes] = await Promise.all([
-    osmWrapper.getFullRelation(relationId),
-    osmWrapper.getWater(relationId)
-  ]);
-  relation.sortWays();
-  relation.calculateDistances(markerDiff);
-  relation.addNodes(waterNodes);
+function addMarkers({geometry: {coordinates, type}}, markerDiff) {
+  const ways = type === 'LineString' ? [coordinates] : coordinates;
+  const markers = [];
+  let prevDistance = 0;
+  let prevMarker = 0;
+  let prevLatLon;
+  ways.forEach(way => {
+    way.forEach(([lon, lat]) => {
+      if (prevLatLon) {
+        const latLon = new LatLon(lat, lon);
+        const distance = prevDistance + prevLatLon.distanceTo(latLon);
+        const marker = Math.floor(distance / markerDiff);
+        if (prevMarker < marker) {
+          const distanceToNextMarker = marker * markerDiff - prevDistance;
+          const bearing = prevLatLon.initialBearingTo(latLon);
+          const {lat: markerLat, lon: markerLon} = prevLatLon.destinationPoint(
+            distanceToNextMarker,
+            bearing,
+          );
+          markers.push(createMarkerFeature(markerLat, markerLon, marker));
+          prevMarker = marker;
+        }
+
+        prevDistance = distance;
+        prevLatLon = latLon;
+      } else {
+        markers.push(createMarkerFeature(lat, lon, 0));
+        prevLatLon = new LatLon(lat, lon);
+      }
+    });
+  });
+  return markers;
+}
+
+async function getRelation({
+  relationId,
+  segmentLimit = 9000,
+  markerDiff = 1000,
+  reverse,
+}) {
+  const geoJson = await osmWrapper.getFullRelation(relationId);
+  const relation = geoJson.features.find(f => f.id.startsWith('relation'));
+  if (reverse) {
+    relation.geometry.coordinates.reverse();
+  }
+
+  const markers = addMarkers(relation, markerDiff);
+  const {properties: {name, timestamp}} = relation;
+  const fileName = `${name}-${moment(timestamp).format('YY-MM-DD')}.gpx`;
+  const gpx = createGpx(relation, markers, +segmentLimit);
+  return {
+    fileName,
+    gpx,
+  };
 }
 
 module.exports = {
   getRelation,
-  getPois
 };

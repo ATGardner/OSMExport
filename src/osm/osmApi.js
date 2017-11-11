@@ -1,27 +1,38 @@
 'use strict';
-require('isomorphic-fetch');
+const fetch = require('node-fetch');
+const osmtogeojson = require('osmtogeojson');
 
-async function request(body) {
+async function overpassQuery(query) {
+  const body = `[out:json][timeout:25];${query}`;
   const result = await fetch('http://overpass-api.de/api/interpreter', {
     method: 'POST',
-    body
+    body,
   });
   if (!result.ok) {
-    return Promise.reject(result.status);
+    throw new Error(result.status);
   }
 
-  return result.json();
+  const osmJson = await result.json();
+  return osmtogeojson(osmJson, {
+    uninterestingTags() {
+      return true;
+    },
+  });
 }
 
 function fetchRelation(relationId) {
-  return request(`[out:json][timeout:25];relation(${relationId});(._;>;);out body meta;`);
+  return overpassQuery(`relation(${relationId});(._;>;);out body meta;`);
 }
 
 function fetchWater(relationId, buffer) {
-  return request(`[out:json][timeout:25];rel(${relationId});node["amenity"="drinking_water"](around:${buffer});out body;`);
+  return overpassQuery(
+    `rel(${relationId});node["amenity"="drinking_water"](around:${
+      buffer
+    });out body;`,
+  );
 }
 
 module.exports = {
   fetchRelation,
-  fetchWater
+  fetchWater,
 };
