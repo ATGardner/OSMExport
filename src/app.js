@@ -3,18 +3,19 @@ const express = require('express');
 const moment = require('moment');
 const slug = require('slug');
 const ua = require('universal-analytics');
-const winston = require('winston');
+const {getLogger} = require('./logger');
 const osm2gpx = require('./osm2gpx');
 const app = express();
 
+const logger = getLogger('app');
+
 slug.defaults.mode = 'rfc3986';
-winston.level = 'verbose';
 if (app.get('env') === 'production') {
   app.use(ua.middleware('UA-18054605-12', {cookieName: '_ga'}));
 }
 
 function sendEvent(visitor, action, label) {
-  winston.info(`${action} - ${label}`);
+  logger.info(`${action} - ${label}`);
   if (visitor) {
     visitor
       .event({
@@ -28,7 +29,7 @@ function sendEvent(visitor, action, label) {
 }
 
 function sendTiming(visitor, variable, time) {
-  winston.info(`${variable} - ${time}ms`);
+  logger.info(`${variable} - ${time}ms`);
   if (visitor) {
     visitor
       .timing({
@@ -47,6 +48,7 @@ function sendTiming(visitor, variable, time) {
  *http://localhost:3000/osm2gpx?relationId=6738379&combineWays=1&segmentLimit=9000
  *INT - http://localhost:3000/osm2gpx?relationId=282071&markerDiff=1609.34
  *JMT - http://localhost:3000/osm2gpx?relationId=1244828&markerDiff=1609.34&reverse=1&segmentLimit=0
+ * 6148296 - ramon crater
  */
 app.get('/osm2gpx', async ({query, query: {relationId}, visitor}, res) => {
   const start = moment();
@@ -89,5 +91,5 @@ app.get('/osm2gpx', async ({query, query: {relationId}, visitor}, res) => {
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  winston.info(`OSM2GPX listening on port ${port}!`);
+  logger.info(`OSM2GPX listening on port ${port}!`);
 });

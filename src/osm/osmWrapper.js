@@ -1,12 +1,31 @@
 'use strict';
-const winston = require('winston');
-const osmApi = require('./osmApi');
+const {getLogger} = require('../logger');
+const osmtogeojson = require('osmtogeojson');
+const {fetchRelation, fetchNodesInRelation} = require('./osmApi');
 
-function getFullRelation(relationId) {
-  winston.verbose(`Getting full relation '${relationId}'`);
-  return osmApi.fetchRelation(relationId, true);
+const logger = getLogger('osmWrapper');
+
+async function getFullRelation(relationId) {
+  logger.verbose(`Getting full relation '${relationId}'`);
+  const osmJson = await fetchRelation(relationId);
+  return osmtogeojson(osmJson, {
+    uninterestingTags() {
+      return true;
+    },
+  });
+}
+
+async function getRelationNodes(relationId) {
+  logger.verbose(`Getting nodes for relation '${relationId}'`);
+  const osmJson = await fetchNodesInRelation(relationId);
+  return osmtogeojson(osmJson, {
+    uninterestingTags() {
+      return true;
+    },
+  });
 }
 
 module.exports = {
   getFullRelation,
+  getRelationNodes,
 };

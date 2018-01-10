@@ -3,8 +3,10 @@ const _ = require('lodash');
 const moment = require('moment');
 const {GpxFileBuilder} = require('gpx');
 const LatLon = require('geodesy').LatLonEllipsoidal;
-const winston = require('winston');
+const {getLogger} = require('./logger');
 const osmWrapper = require('./osm/osmWrapper');
+
+const logger = getLogger('osm2gpx');
 
 function createGpx(
   {id, geometry: {coordinates, type}, properties: {name, timestamp}},
@@ -17,7 +19,21 @@ function createGpx(
     creator: 'OpenStreetMap relation export',
     time: timestamp,
   });
-  winston.verbose(`Creating GPX for relation ${id}`);
+  logger.verbose(`Creating GPX for relation ${id}`);
+  markers.forEach(
+    ({
+      properties: {marker},
+      geometry: {
+        coordinates: [longitude, latitude],
+      },
+    }) => {
+      builder.addWayPoints({
+        latitude,
+        longitude,
+        name: marker,
+      });
+    },
+  );
   const ways = type === 'LineString' ? [coordinates] : coordinates;
   ways.forEach((way, i) => {
     const pointData = way.map(([longitude, latitude]) => ({
@@ -28,29 +44,18 @@ function createGpx(
     segments.forEach((segment, j) => {
       builder.addTrack(
         {
-          name: `${name}-way${i}-seg${j}`,
+          name: `way${i}-seg${j}`,
           time: timestamp,
         },
         segment,
       );
     });
   });
-  markers.forEach(
-    ({
-      properties: {marker},
-      geometry: {coordinates: [longitude, latitude]},
-    }) => {
-      builder.addWayPoints({
-        latitude,
-        longitude,
-        name: marker,
-      });
-    },
-  );
   return builder.xml();
 }
 
 function createMarkerFeature(lat, lon, marker) {
+  logger.verbose(`Creating marker, (${lat}, ${lon}) - ${marker}`);
   return {
     type: 'Feature',
     properties: {
@@ -110,7 +115,9 @@ async function getRelation({
   }
 
   const markers = addMarkers(relation, markerDiff);
-  const {properties: {name, timestamp}} = relation;
+  const {
+    properties: {name, timestamp},
+  } = relation;
   const fileName = `${name}-${moment(timestamp).format('YY-MM-DD')}.gpx`;
   const gpx = createGpx(relation, markers, +segmentLimit);
   return {

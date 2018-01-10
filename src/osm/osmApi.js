@@ -1,6 +1,5 @@
 'use strict';
 const fetch = require('node-fetch');
-const osmtogeojson = require('osmtogeojson');
 
 async function overpassQuery(query) {
   const body = `[out:json][timeout:25];${query}`;
@@ -12,27 +11,41 @@ async function overpassQuery(query) {
     throw new Error(result.status);
   }
 
-  const osmJson = await result.json();
-  return osmtogeojson(osmJson, {
-    uninterestingTags() {
-      return true;
-    },
-  });
+  return result.json();
 }
 
 function fetchRelation(relationId) {
-  return overpassQuery(`relation(${relationId});(._;>;);out body meta;`);
+  return overpassQuery(
+    `relation(${relationId});
+    (._;>;);
+    out body meta;`,
+  );
+}
+
+function fetchNodesInRelation(relationId) {
+  return overpassQuery(`
+    relation(${relationId})->.r;
+    way(r.r) -> .w;
+    node(w.w) -> .n;
+    (
+      .n;
+      .w;
+      .r;
+    )->.all;
+    .all out body meta;
+  `);
 }
 
 function fetchWater(relationId, buffer) {
   return overpassQuery(
-    `rel(${relationId});node["amenity"="drinking_water"](around:${
-      buffer
-    });out body;`,
+    `rel(${relationId});
+    node["amenity"="drinking_water"](around:${buffer});
+    out body;`,
   );
 }
 
 module.exports = {
   fetchRelation,
+  fetchNodesInRelation,
   fetchWater,
 };
