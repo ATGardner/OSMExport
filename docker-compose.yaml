@@ -1,0 +1,11 @@
+version: '3.7'
+services:
+  osmexport:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: noamgal/osmexport:latest
+    container_name: osmexport
+    ports:
+      - 3000:3000
+      - 9229:9229

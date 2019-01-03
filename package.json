@@ -2,7 +2,7 @@
   "name": "OSMExport",
   "version": "1.3.0",
   "description": "",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
     "lint": "eslint --fix src/**/*.js",
     "start": "node server.js",
