@@ -8,7 +8,7 @@ steps:
 - task: Docker@1
   displayName: Build an image
   inputs:
-    imageName: osmexport:$(Build.BuildId)
+    imageName: noamgal/osmexport:$(Build.BuildId)
 
 - task: Docker@1
   displayName: Login
@@ -21,5 +21,5 @@ steps:
   displayName: Push an image
   inputs:
     command: push
-    imageName: osmexport:$(Build.BuildId)
+    imageName: noamgal/osmexport:$(Build.BuildId)
     includeLatestTag: true
