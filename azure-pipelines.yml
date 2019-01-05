@@ -6,24 +6,23 @@ pool:
 
 steps:
 - task: Docker@1
-  displayName: Build an image
+  displayName: Build image
   inputs:
     imageName: noamgal/osmexport:$(Build.BuildNumber)
     includeLatestTag: true
 
 - task: Docker@1
-  displayName: Login
-  enabled: false
-  inputs:
-    containerregistrytype: Container Registry
-    command: login
-    dockerRegistryEndpoint: Docker Credentials
-
-- task: Docker@1
-  displayName: Push an image
+  displayName: Push image
   inputs:
     containerregistrytype: Container Registry
     command: push
     dockerRegistryEndpoint: Docker Credentials
     imageName: noamgal/osmexport:$(Build.BuildNumber)
-    includeLatestTag: true
+
+- task: Docker@1
+  displayName: Push latest image
+  inputs:
+    containerregistrytype: Container Registry
+    command: push
+    dockerRegistryEndpoint: Docker Credentials
+    imageName: noamgal/osmexport:latest
