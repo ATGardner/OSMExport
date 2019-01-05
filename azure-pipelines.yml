@@ -13,8 +13,7 @@ steps:
 - task: Docker@1
   displayName: Login
   inputs:
-    azureSubscriptionEndpoint: Container Registry
-    azureContainerRegistry: index.docker.io
+    containerregistrytype: Container Registry
     command: login
     dockerRegistryEndpoint: Docker Credentials
 
