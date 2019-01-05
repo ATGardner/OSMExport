@@ -1,0 +1,29 @@
+variables:
+- group: Docker Credentials
+
+trigger:
+- master
+
+pool:
+  vmImage: 'Ubuntu-16.04'
+
+steps:
+- task: Docker@1
+  displayName: Build an image
+  inputs:
+    imageName: osmexport:$(Build.BuildId)
+
+- task: Docker@1
+  displayName: Login
+  inputs:
+    azureSubscriptionEndpoint: Container Registry
+    azureContainerRegistry: index.docker.io
+    command: login
+    dockerRegistryEndpoint: Docker Credentials
+
+- task: Docker@1
+  displayName: Push an image
+  inputs:
+    command: push
+    imageName: osmexport:$(Build.BuildId)
+    includeLatestTag: true
