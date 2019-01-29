@@ -116,9 +116,9 @@ async function getRelation({
 
   const markers = addMarkers(relation, markerDiff);
   const {
-    properties: {name, timestamp},
+    properties: {name, 'name:en': nameEn = name, timestamp},
   } = relation;
-  const fileName = `${name}-${moment(timestamp).format('YY-MM-DD')}.gpx`;
+  const fileName = `${nameEn}-${moment(timestamp).format('YY-MM-DD')}.gpx`;
   const gpx = createGpx(relation, markers, +segmentLimit);
   return {
     fileName,
