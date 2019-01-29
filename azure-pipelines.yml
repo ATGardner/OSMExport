@@ -1,0 +1,28 @@
+trigger:
+- master
+
+pool:
+  vmImage: Ubuntu-16.04
+
+steps:
+- task: Docker@1
+  displayName: Build image
+  inputs:
+    imageName: noamgal/osmexport:$(Build.BuildNumber)
+    includeLatestTag: true
+
+- task: Docker@1
+  displayName: Push image
+  inputs:
+    containerregistrytype: Container Registry
+    command: push
+    dockerRegistryEndpoint: Docker Credentials
+    imageName: noamgal/osmexport:$(Build.BuildNumber)
+
+- task: Docker@1
+  displayName: Push latest image
+  inputs:
+    containerregistrytype: Container Registry
+    command: push
+    dockerRegistryEndpoint: Docker Credentials
+    imageName: noamgal/osmexport:latest
