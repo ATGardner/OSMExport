@@ -1,3 +1,3 @@
 'use strict';
 
-import './src/app';
+import './src/app.js';

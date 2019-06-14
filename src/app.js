@@ -2,8 +2,8 @@
 
 import express from 'express';
 import {getLogger} from './logger.js';
+import {getRelation} from './osm2gpx.js';
 import moment from 'moment';
-import osm2gpx from './osm2gpx.js';
 import slug from 'slug';
 import ua from 'universal-analytics';
 
@@ -56,7 +56,7 @@ app.get('/osm2gpx', async ({query, query: {relationId}, visitor}, res) => {
   const start = moment();
   sendEvent(visitor, 'Creating gpx', relationId);
   try {
-    const {fileName, gpx} = await osm2gpx.getRelation(query);
+    const {fileName, gpx} = await getRelation(query);
     const end = moment().diff(start);
     sendTiming(visitor, 'getRelationTime', end);
     const safeFileName = encodeURI(
