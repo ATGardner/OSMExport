@@ -1,10 +1,13 @@
-const {writeFileSync} = require('fs');
-const {getLogger} = require('./src/logger');
-const {getRelation} = require('./src/osm2gpx');
+'use strict';
+
+import {getLogger} from './src/logger.js';
+import {getRelation} from './src/osm2gpx.js';
+import {writeFileSync} from 'fs';
+import yargs from 'yargs';
 
 const logger = getLogger('commandLine');
 
-const argv = require('yargs')
+const args = yargs
   .usage('Usage: $0 <command> [options]')
   .example(
     'node $0 -r 282071',
@@ -13,7 +16,7 @@ const argv = require('yargs')
   .command({
     command: 'getRelation [relationId]',
     description: 'Exports the relation to a gpx file',
-    handler: async argv => {
+    async handler(argv) {
       try {
         const {fileName, gpx} = await getRelation(argv);
         writeFileSync(fileName, gpx);

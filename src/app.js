@@ -1,10 +1,12 @@
 'use strict';
-const express = require('express');
-const moment = require('moment');
-const slug = require('slug');
-const ua = require('universal-analytics');
-const {getLogger} = require('./logger');
-const osm2gpx = require('./osm2gpx');
+
+import express from 'express';
+import {getLogger} from './logger.js';
+import moment from 'moment';
+import osm2gpx from './osm2gpx.js';
+import slug from 'slug';
+import ua from 'universal-analytics';
+
 const app = express();
 
 const logger = getLogger('app');

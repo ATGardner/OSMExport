@@ -1,5 +1,6 @@
 'use strict';
-const fetch = require('node-fetch');
+
+import fetch from 'node-fetch';
 
 async function overpassQuery(query) {
   const body = `[out:json][timeout:25];${query}`;
@@ -14,17 +15,17 @@ async function overpassQuery(query) {
   return result.json();
 }
 
-function fetchRelation(relationId) {
-  return overpassQuery(
-    `relation(${relationId});
+export function fetchRelation(relationId) {
+  return overpassQuery(`
+    relation(${relationId});
     (._;>;);
-    out body meta;`,
-  );
+    out body meta;
+  `);
 }
 
-function fetchNodesInRelation(relationId) {
+export function fetchNodesInRelation(relationId) {
   return overpassQuery(`
-    relation(${relationId})->.r;
+    relation(${relationId}) -> .r;
     way(r.r) -> .w;
     node(w.w) -> .n;
     (
@@ -35,17 +36,3 @@ function fetchNodesInRelation(relationId) {
     .all out body meta;
   `);
 }
-
-function fetchWater(relationId, buffer) {
-  return overpassQuery(
-    `rel(${relationId});
-    node["amenity"="drinking_water"](around:${buffer});
-    out body;`,
-  );
-}
-
-module.exports = {
-  fetchRelation,
-  fetchNodesInRelation,
-  fetchWater,
-};

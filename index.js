@@ -1,3 +1,3 @@
 'use strict';
 
-require('./src/app');
+import './src/app';

@@ -1,10 +1,11 @@
 'use strict';
-const _ = require('lodash');
-const moment = require('moment');
-const {GpxFileBuilder} = require('gpx');
-const LatLon = require('geodesy').LatLonEllipsoidal;
-const {getLogger} = require('./logger');
-const osmWrapper = require('./osm/osmWrapper');
+
+import LatLon from 'geodesy/latlon-ellipsoidal-vincenty.js';
+import _ from 'lodash';
+import {getFullRelation} from './osm/osmWrapper.js';
+import {getLogger} from './logger.js';
+import gpx from 'gpx';
+import moment from 'moment';
 
 const logger = getLogger('osm2gpx');
 
@@ -13,7 +14,7 @@ function createGpx(
   markers,
   limit,
 ) {
-  const builder = new GpxFileBuilder({
+  const builder = new gpx.GpxFileBuilder({
     description: 'Data extracted from OSM',
     name,
     creator: 'OpenStreetMap relation export',
@@ -102,13 +103,13 @@ function addMarkers({geometry: {coordinates, type}}, markerDiff) {
   return markers;
 }
 
-async function getRelation({
+export async function getRelation({
   relationId,
   segmentLimit = 9000,
   markerDiff = 1000,
   reverse,
 }) {
-  const geoJson = await osmWrapper.getFullRelation(relationId);
+  const geoJson = await getFullRelation(relationId);
   const relation = geoJson.features.find(f => f.id.startsWith('relation'));
   if (reverse) {
     relation.geometry.coordinates.reverse();
@@ -125,7 +126,3 @@ async function getRelation({
     gpx,
   };
 }
-
-module.exports = {
-  getRelation,
-};

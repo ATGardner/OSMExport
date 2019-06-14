@@ -1,21 +1,22 @@
 'use strict';
-const {getLogger} = require('../logger');
-const osmtogeojson = require('osmtogeojson');
-const {fetchRelation, fetchNodesInRelation} = require('./osmApi');
+
+import {fetchNodesInRelation, fetchRelation} from './osmApi.js';
+import {getLogger} from '../logger.js';
+import osmtogeojson from 'osmtogeojson';
 
 const logger = getLogger('osmWrapper');
 
-async function getFullRelation(relationId) {
+export async function getFullRelation(relationId, filter = true) {
   logger.verbose(`Getting full relation '${relationId}'`);
   const osmJson = await fetchRelation(relationId);
   return osmtogeojson(osmJson, {
     uninterestingTags() {
-      return true;
+      return filter;
     },
   });
 }
 
-async function getRelationNodes(relationId) {
+export async function getRelationNodes(relationId) {
   logger.verbose(`Getting nodes for relation '${relationId}'`);
   const osmJson = await fetchNodesInRelation(relationId);
   return osmtogeojson(osmJson, {
@@ -24,8 +25,3 @@ async function getRelationNodes(relationId) {
     },
   });
 }
-
-module.exports = {
-  getFullRelation,
-  getRelationNodes,
-};
