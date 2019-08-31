@@ -1,6 +1,6 @@
 {
   "name": "osm-export",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -13,28 +13,28 @@
   "license": "ISC",
   "devDependencies": {
     "chai": "^4.2.0",
-    "eslint": "^5.16.0",
-    "eslint-config-prettier": "^4.3.0",
-    "eslint-config-standard": "^12.0.0",
-    "eslint-plugin-import": "^2.17.3",
-    "eslint-plugin-node": "^9.1.0",
+    "eslint": "^6.3.0",
+    "eslint-config-prettier": "^6.1.0",
+    "eslint-config-standard": "^14.1.0",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-node": "^9.2.0",
     "eslint-plugin-prettier": "^3.1.0",
-    "eslint-plugin-promise": "^4.1.1",
-    "eslint-plugin-standard": "^4.0.0",
-    "mocha": "^6.1.4",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "mocha": "^6.2.0",
     "prettier": "^1.18.2"
   },
   "dependencies": {
     "express": "^4.17.1",
     "geodesy": "ATGardner/geodesy#experimental-modules-flag",
     "gpx": "git+https://github.com/kchapelier/gpx.git",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.15",
     "moment": "^2.24.0",
     "node-fetch": "^2.6.0",
     "osmtogeojson": "^3.0.0-beta.3",
     "slug": "^1.1.0",
     "universal-analytics": "^0.4.20",
     "winston": "^3.2.1",
-    "yargs": "^13.2.4"
+    "yargs": "^14.0.0"
   }
 }

@@ -74,7 +74,7 @@ function addMarkers({geometry: {coordinates, type}}, markerDiff) {
   const markers = [];
   let prevDistance = 0;
   let prevMarker = 0;
-  let prevLatLon;
+  let prevLatLon = 0;
   ways.forEach(way => {
     way.forEach(([lon, lat]) => {
       if (prevLatLon) {
@@ -105,7 +105,7 @@ function addMarkers({geometry: {coordinates, type}}, markerDiff) {
 
 export async function getRelation({
   relationId,
-  segmentLimit = 9000,
+  segmentLimit = 0,
   markerDiff = 1000,
   reverse,
 }) {
