@@ -15,8 +15,8 @@ steps:
     containerRegistry: 'Docker Credentials'
     repository: 'noamgal/osmexport'
     command: 'buildAndPush'
-    Dockerfile: '**/Dockerfile'
+    Dockerfile: 'Dockerfile'
     tags: |
       $(Build.BuildNumber)
-      latest)
+      latest
 
