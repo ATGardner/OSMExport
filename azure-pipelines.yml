@@ -5,24 +5,18 @@ pool:
   vmImage: Ubuntu-16.04
 
 steps:
-- task: Docker@1
-  displayName: Build image
+- task: Docker@2
   inputs:
-    imageName: noamgal/osmexport:$(Build.BuildNumber)
-    includeLatestTag: true
+    containerRegistry: 'Docker Credentials'
+    command: 'login'
 
-- task: Docker@1
-  displayName: Push image
+- task: Docker@2
   inputs:
-    containerregistrytype: Container Registry
-    command: push
-    dockerRegistryEndpoint: Docker Credentials
-    imageName: noamgal/osmexport:$(Build.BuildNumber)
+    containerRegistry: 'Docker Credentials'
+    repository: 'noamgal/osmexport'
+    command: 'buildAndPush'
+    Dockerfile: '**/Dockerfile'
+    tags: |
+      $(Build.BuildNumber)
+      latest)
 
-- task: Docker@1
-  displayName: Push latest image
-  inputs:
-    containerregistrytype: Container Registry
-    command: push
-    dockerRegistryEndpoint: Docker Credentials
-    imageName: noamgal/osmexport:latest
