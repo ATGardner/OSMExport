@@ -1,7 +1,7 @@
 'use strict';
 
 import winston from 'winston';
-// import {createLogger, format, transports} from 'winston';
+// Import {createLogger, format, transports} from 'winston';
 
 const {combine, timestamp, label, simple} = winston.format;
 

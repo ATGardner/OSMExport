@@ -2,8 +2,8 @@ version: '3.7'
 services:
   osmexport:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../
+      dockerfile: docker/Dockerfile
     image: noamgal/osmexport:latest
     container_name: osmexport
     ports:

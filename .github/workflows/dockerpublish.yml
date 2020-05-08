@@ -1,20 +1,6 @@
 name: Docker
 
-on:
-  push:
-    # Publish `master` as Docker `latest` image.
-    branches:
-      - master
-
-    # Publish `v1.2.3` tags as releases.
-    tags:
-      - v*
-
-  # Run tests for any PRs.
-  pull_request:
-
-env:
-  IMAGE_NAME: osmexport
+on: [push, pull_request]
 
 jobs:
   # Run tests.
@@ -27,52 +13,30 @@ jobs:
 
       - name: Run tests
         run: |
-          if [ -f docker-compose.test.yml ]; then
-            docker-compose --file docker-compose.test.yml build
-            docker-compose --file docker-compose.test.yml run sut
+          if [ -f docker/docker-compose.test.yml ]; then
+            docker-compose --file docker/docker-compose.test.yml build
+            docker-compose --file docker/docker-compose.test.yml run sut
           else
-            docker build . --file Dockerfile
+            docker build --file docker/Dockerfile .
           fi
 
   # Push image to GitHub Packages.
-  # See also https://docs.docker.com/docker-hub/builds/
   push:
-    # Ensure test job passes before pushing image.
     needs: test
 
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v2
-      
-      - name: Set image id
-        run: |
-          IMAGE_ID="docker.pkg.github.com/${{ github.repository }}/$IMAGE_NAME"
-          IMAGE_ID=$(echo ${IMAGE_ID} | tr '[A-Z]' '[a-z]')
-          echo "::set-env name=IMAGE_ID::${IMAGE_ID}"
 
-      - name: Build image
-        run: |
-          # Strip git ref prefix from version
-          BRANCH_NAME=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-          if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
-            # Strip "v" prefix from tag name
-            VERSION=$(echo $BRANCH_NAME | sed -e 's/^v//')
-            LATEST_TAG="--tag ${IMAGE_ID}:latest"
-          else
-            FULL_SHA=${{ github.sha }}
-            SHA7=${FULL_SHA:0:7}
-            VERSION="${BRANCH_NAME}_${SHA7}"
-            LATEST_TAG=""
-          fi
-          
-          TAG="--tag ${IMAGE_ID}:${VERSION}"
-          echo "docker build . --file Dockerfile ${TAG} ${LATEST_TAG}"
-          docker build . --file Dockerfile ${TAG} ${LATEST_TAG}
-
-      - name: Log into registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
-
-      - name: Push image
-        run: docker push ${IMAGE_ID}
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v1.1.0
+        with:
+          repository: atgardner/osmexport/osmexport
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: docker.pkg.github.com
+          dockerfile: docker/Dockerfile
+          tag_with_ref: true
+          tag_with_sha: true
+          add_git_labels: true

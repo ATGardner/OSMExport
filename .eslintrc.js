@@ -1,13 +1,11 @@
 module.exports = {
-  plugins: [
-    'standard',
-    'prettier',
-    'import',
-  ],
+  plugins: ['standard'],
   extends: [
     'eslint:recommended',
+    // Adds 'promise'/'import'/'node' plugins and configurations
     'standard',
-    'prettier',
+    // Adds 'prettier' plugin
+    'plugin:prettier/recommended',
     'prettier/standard',
   ],
   parserOptions: {
@@ -19,18 +17,18 @@ module.exports = {
     es6: true,
   },
   rules: {
-    // fixable - errors
-    'prettier/prettier': [
+    // Fixable - errors
+    'one-var': [
       'error',
+      {
+        const: 'never',
+        let: 'never',
+      },
     ],
-    'one-var': ['error', {
-      const: 'never',
-      let: 'never',
-    }],
     'dot-notation': 'error',
     'no-else-return': ['error', {allowElseIf: false}],
     'capitalized-comments': 'error',
-    //'linebreak-style': 'off',
+    // 'linebreak-style': 'off',
     'lines-between-class-members': 'error',
     'multiline-comment-style': 'error',
     'no-lonely-if': 'error',
@@ -46,12 +44,12 @@ module.exports = {
     'prefer-template': 'error',
     'sort-imports': 'error',
 
-    // non-fixable - warnings
+    // Non-fixable - warnings
     'no-await-in-loop': 'warn',
     'array-callback-return': 'warn',
     'block-scoped-var': 'warn',
-    //'class-methods-use-this': 'warn',
-    'complexity': 'warn',
+    // 'class-methods-use-this': 'warn',
+    complexity: 'warn',
     'consistent-return': 'warn',
     'default-case': 'warn',
     'guard-for-in': 'warn',
@@ -60,13 +58,13 @@ module.exports = {
     'no-implicit-globals': 'warn',
     'no-invalid-this': 'warn',
     'no-loop-func': 'warn',
-    //'no-magic-numbers': 'warn',
+    // 'no-magic-numbers': 'warn',
     'no-param-reassign': 'warn',
     'no-script-url': 'warn',
     'no-useless-concat': 'warn',
     'no-void': 'warn',
     'no-warning-comments': 'warn',
-    'radix': 'warn',
+    radix: 'warn',
     'require-await': 'warn',
     'init-declarations': 'warn',
     'no-catch-shadow': 'warn',
@@ -81,7 +79,7 @@ module.exports = {
     'consistent-this': 'warn',
     'func-name-matching': 'warn',
     'func-names': 'warn',
-    'func-style': ['warn', 'declaration', {"allowArrowFunctions": true}],
+    'func-style': ['warn', 'declaration', {allowArrowFunctions: true}],
     'line-comment-position': 'warn',
     'max-depth': 'warn',
     'max-nested-callbacks': 'warn',

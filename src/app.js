@@ -62,7 +62,7 @@ app.get('/osm2gpx', async ({query, query: {relationId}, visitor}, res) => {
     const safeFileName = encodeURI(
       slug(fileName, {
         // Replace spaces with replacement
-        replacement: c => c,
+        replacement: (c) => c,
         // Replace unicode symbols or not
         symbols: false,
         // (optional) regex to remove characters
@@ -84,10 +84,7 @@ app.get('/osm2gpx', async ({query, query: {relationId}, visitor}, res) => {
     const end = moment().diff(start);
     sendTiming(visitor, 'failureTime', end);
     sendEvent(visitor, 'Error', `${relationId} - ${error}`);
-    res
-      .set('Content-Type', 'text/plain')
-      .status(500)
-      .send(error.stack);
+    res.set('Content-Type', 'text/plain').status(500).send(error.stack);
   }
 });
 
