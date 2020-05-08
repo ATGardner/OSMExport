@@ -53,7 +53,7 @@ jobs:
         run: |
           # Strip git ref prefix from version
           BRANCH_NAME=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-          if [[ "${{ github.ref }}" == "refs/tags/"* ]]
+          if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
             # Strip "v" prefix from tag name
             VERSION=$(echo $VERSION | sed -e 's/^v//')
             LATEST_TAG="-tag ${IMAGE_NAME}:latest"
