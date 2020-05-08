@@ -58,7 +58,7 @@ jobs:
           BRANCH_NAME=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
           if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
             # Strip "v" prefix from tag name
-            VERSION=$(echo $VERSION | sed -e 's/^v//')
+            VERSION=$(echo $BRANCH_NAME | sed -e 's/^v//')
             LATEST_TAG="--tag ${IMAGE_ID}:latest"
           else
             FULL_SHA=${{ github.sha }}
