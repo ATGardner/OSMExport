@@ -68,6 +68,7 @@ jobs:
           fi
           
           TAG="--tag ${IMAGE_ID}:${VERSION}"
+          echo "docker build . --file Dockerfile ${TAG} ${LATEST_TAG}"
           docker build . --file Dockerfile ${TAG} ${LATEST_TAG}
 
       - name: Log into registry
