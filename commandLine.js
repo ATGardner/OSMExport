@@ -48,7 +48,7 @@ const args = yargs
       alias: 'reverse',
       default: false,
       describe: 'Reverse way sort and marker order',
-      type: 'bool',
+      type: 'boolean',
     },
   })
   .help('h')
