@@ -15,7 +15,6 @@ on:
 
 env:
   IMAGE_NAME: osmexport
-  IMAGE_ID: $(echo docker.pkg.github.com/${{ github.repository }}/$IMAGE_NAME | tr '[A-Z]' '[a-z]')
 
 jobs:
   # Run tests.
@@ -46,8 +45,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-        env:
-          IMAGE_ID: $(echo docker.pkg.github.com/${{ github.repository }}/$IMAGE_NAME | tr '[A-Z]' '[a-z]') 
+      
+      - name: Set image id
+        run: |
+          IMAGE_ID="docker.pkg.github.com/${{ github.repository }}/$IMAGE_NAME"
+          IMAGE_ID=$(echo ${IMAGE_ID} | tr '[A-Z]' '[a-z]')
+          echo "::set-env name=IMAGE_ID::${IMAGE_ID}"
 
       - name: Build image
         run: |
