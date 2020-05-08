@@ -59,7 +59,7 @@ jobs:
           if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
             # Strip "v" prefix from tag name
             VERSION=$(echo $VERSION | sed -e 's/^v//')
-            LATEST_TAG="-tag ${IMAGE_ID}:latest"
+            LATEST_TAG="--tag ${IMAGE_ID}:latest"
           else
             FULL_SHA=${{ github.sha }}
             SHA7=${FULL_SHA:0:7}
