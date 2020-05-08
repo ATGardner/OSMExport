@@ -9,7 +9,6 @@
     "cmd": "node commandLine.js"
   },
   "author": "",
-  "type": "module",
   "license": "ISC",
   "devDependencies": {
     "chai": "^4.2.0",

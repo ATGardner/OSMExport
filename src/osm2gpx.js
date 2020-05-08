@@ -75,7 +75,7 @@ function addMarkers({geometry: {coordinates, type}}, markerDiff) {
   let prevDistance = 0;
   let prevMarker = 0;
   let prevLatLon = 0;
-  ways.forEach(way => {
+  ways.forEach((way) => {
     way.forEach(([lon, lat]) => {
       if (prevLatLon) {
         const latLon = new LatLon(lat, lon);
@@ -110,7 +110,7 @@ export async function getRelation({
   reverse,
 }) {
   const geoJson = await getFullRelation(relationId);
-  const relation = geoJson.features.find(f => f.id.startsWith('relation'));
+  const relation = geoJson.features.find((f) => f.id.startsWith('relation'));
   if (reverse) {
     relation.geometry.coordinates.reverse();
   }
