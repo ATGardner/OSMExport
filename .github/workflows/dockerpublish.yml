@@ -14,8 +14,8 @@ on:
   pull_request:
 
 env:
-  # TODO: Change variable to your image's name.
   IMAGE_NAME: osmexport
+  IMAGE_ID: $(echo docker.pkg.github.com/${{ github.repository }}/$IMAGE_NAME | tr '[A-Z]' '[a-z]')
 
 jobs:
   # Run tests.
@@ -56,7 +56,7 @@ jobs:
           if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
             # Strip "v" prefix from tag name
             VERSION=$(echo $VERSION | sed -e 's/^v//')
-            LATEST_TAG="-tag ${IMAGE_NAME}:latest"
+            LATEST_TAG="-tag ${IMAGE_ID}:latest"
           else
             FULL_SHA=${{ github.sha }}
             SHA7=${FULL_SHA:0:7}
@@ -64,11 +64,11 @@ jobs:
             LATEST_TAG=""
           fi
           
-          TAG="--tag ${IMAGE_NAME}:${VERSION}"
+          TAG="--tag ${IMAGE_ID}:${VERSION}"
           docker build . --file Dockerfile ${TAG} ${LATEST_TAG}
 
       - name: Log into registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
 
       - name: Push image
-        run: docker push $IMAGE_ID
+        run: docker push ${IMAGE_ID}
