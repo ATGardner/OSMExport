@@ -90,5 +90,5 @@ app.get('/osm2gpx', async ({query, query: {relationId}, visitor}, res) => {
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  logger.info(`OSM2GPX listening on port ${port}!`);
+  logger.info(`OSMExport listening on port ${port}!`);
 });

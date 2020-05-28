@@ -3,9 +3,10 @@ services:
   osmexport:
     build:
       context: ../
-      dockerfile: docker/Dockerfile
-    image: noamgal/osmexport:latest
+      dockerfile: docker/dev.Dockerfile
     container_name: osmexport
+    volumes:
+      - ../:/app
     ports:
       - 3000:3000
       - 9229:9229
