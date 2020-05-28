@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.mjs",
   "scripts": {
-    "lint": "eslint --fix src/**/*.js",
+    "lint": "eslint --fix src/**/*.mjs",
     "start": "node index.mjs",
     "cmd": "node commandLine.mjs"
   },

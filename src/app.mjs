@@ -1,11 +1,11 @@
 'use strict';
 
 import express from 'express';
+import {getLogger} from './logger.mjs';
+import {getRelation} from './osm2gpx.mjs';
 import moment from 'moment';
 import slug from 'slug';
 import ua from 'universal-analytics';
-import {getLogger} from './logger.mjs';
-import {getRelation} from './osm2gpx.mjs';
 
 const app = express();
 
