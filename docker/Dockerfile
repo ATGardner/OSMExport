@@ -17,4 +17,4 @@ WORKDIR /server
 
 EXPOSE 3000
 
-CMD ["nodemon", "--inspect=[::]:9229", "--experimental-modules", "index.js"]
+CMD ["nodemon", "--inspect=[::]:9229", "--experimental-modules", "index.mjs"]

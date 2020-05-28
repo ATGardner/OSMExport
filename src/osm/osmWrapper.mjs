@@ -1,8 +1,8 @@
 'use strict';
 
-import {fetchNodesInRelation, fetchRelation} from './osmApi.js';
-import {getLogger} from '../logger.js';
 import osmtogeojson from 'osmtogeojson';
+import {getLogger} from '../logger.mjs';
+import {fetchNodesInRelation, fetchRelation} from './osmApi.mjs';
 
 const logger = getLogger('osmWrapper');
 

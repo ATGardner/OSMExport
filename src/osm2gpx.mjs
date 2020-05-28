@@ -1,11 +1,11 @@
 'use strict';
 
 import LatLon from 'geodesy/latlon-ellipsoidal-vincenty.js';
-import _ from 'lodash';
-import {getFullRelation} from './osm/osmWrapper.js';
-import {getLogger} from './logger.js';
 import gpx from 'gpx';
+import _ from 'lodash';
 import moment from 'moment';
+import {getLogger} from './logger.mjs';
+import {getFullRelation} from './osm/osmWrapper.mjs';
 
 const logger = getLogger('osm2gpx');
 

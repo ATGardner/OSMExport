@@ -2,17 +2,17 @@
   "name": "osm-export",
   "version": "2.0.1",
   "description": "",
-  "main": "index.js",
+  "main": "index.mjs",
   "scripts": {
     "lint": "eslint --fix src/**/*.js",
     "start": "node server.js",
-    "cmd": "node commandLine.js"
+    "cmd": "node commandLine.mjs"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "chai": "^4.2.0",
-    "eslint": "^7.0.0",
+    "eslint": "^7.1.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-config-standard": "^14.1.1",
     "eslint-plugin-import": "^2.20.2",
@@ -20,7 +20,7 @@
     "eslint-plugin-prettier": "^3.1.3",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
-    "mocha": "^7.1.2",
+    "mocha": "^7.2.0",
     "prettier": "^2.0.5"
   },
   "dependencies": {
@@ -28,10 +28,10 @@
     "geodesy": "^2.2.1",
     "gpx": "git+https://github.com/kchapelier/gpx.git",
     "lodash": "^4.17.15",
-    "moment": "^2.25.3",
+    "moment": "^2.26.0",
     "node-fetch": "^2.6.0",
     "osmtogeojson": "^3.0.0-beta.4",
-    "slug": "^2.1.1",
+    "slug": "^3.2.0",
     "universal-analytics": "^0.4.20",
     "winston": "^3.2.1",
     "yargs": "^15.3.1"

@@ -28,7 +28,7 @@ module.exports = {
     'dot-notation': 'error',
     'no-else-return': ['error', {allowElseIf: false}],
     'capitalized-comments': 'error',
-    // 'linebreak-style': 'off',
+    'linebreak-style': 'off',
     'lines-between-class-members': 'error',
     'multiline-comment-style': 'error',
     'no-lonely-if': 'error',
