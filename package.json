@@ -27,7 +27,7 @@
     "express": "^4.17.1",
     "geodesy": "^2.2.1",
     "gpx": "git+https://github.com/kchapelier/gpx.git",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.19",
     "moment": "^2.26.0",
     "node-fetch": "^2.6.0",
     "osmtogeojson": "^3.0.0-beta.4",
