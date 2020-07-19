@@ -84,7 +84,8 @@ app.get('/osm2gpx', async ({query, query: {relationId}, visitor}, res) => {
     const end = moment().diff(start);
     sendTiming(visitor, 'failureTime', end);
     sendEvent(visitor, 'Error', `${relationId} - ${error}`);
-    res.set('Content-Type', 'text/plain').status(500).send(error.stack);
+    logger.error('Error Occured', error);
+    res.set('Content-Type', 'text/plain').status(500).send('An error occured');
   }
 });
 
