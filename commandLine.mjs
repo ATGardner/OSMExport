@@ -1,9 +1,9 @@
 'use strict';
 
-import {writeFileSync} from 'fs';
-import yargs from 'yargs';
 import {getLogger} from './src/logger.mjs';
 import {getRelation} from './src/osm2gpx.mjs';
+import {writeFileSync} from 'fs';
+import yargs from 'yargs';
 
 const logger = getLogger('commandLine');
 
