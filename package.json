@@ -12,15 +12,15 @@
   "license": "ISC",
   "devDependencies": {
     "chai": "^4.2.0",
-    "eslint": "^7.1.0",
+    "eslint": "^7.5.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-config-standard": "^14.1.1",
-    "eslint-plugin-import": "^2.20.2",
+    "eslint-plugin-import": "^2.22.0",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^3.1.3",
+    "eslint-plugin-prettier": "^3.1.4",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
-    "mocha": "^7.2.0",
+    "mocha": "^8.0.1",
     "prettier": "^2.0.5"
   },
   "dependencies": {
@@ -28,12 +28,12 @@
     "geodesy": "^2.2.1",
     "gpx": "git+https://github.com/kchapelier/gpx.git",
     "lodash": "^4.17.19",
-    "moment": "^2.26.0",
+    "moment": "^2.27.0",
     "node-fetch": "^2.6.0",
     "osmtogeojson": "^3.0.0-beta.4",
-    "slug": "^3.2.0",
-    "universal-analytics": "^0.4.20",
-    "winston": "^3.2.1",
-    "yargs": "^15.3.1"
+    "slug": "^3.3.2",
+    "universal-analytics": "^0.4.23",
+    "winston": "^3.3.3",
+    "yargs": "^15.4.1"
   }
 }

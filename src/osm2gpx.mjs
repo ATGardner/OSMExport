@@ -120,9 +120,8 @@ export async function getRelation({
     properties: {name, 'name:en': nameEn = name, timestamp},
   } = relation;
   const fileName = `${nameEn}-${moment(timestamp).format('YY-MM-DD')}.gpx`;
-  const gpx = createGpx(relation, markers, +segmentLimit);
   return {
     fileName,
-    gpx,
+    gpx: createGpx(relation, markers, +segmentLimit),
   };
 }
