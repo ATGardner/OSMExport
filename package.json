@@ -31,7 +31,7 @@
     "moment": "^2.27.0",
     "node-fetch": "^2.6.0",
     "osmtogeojson": "^3.0.0-beta.4",
-    "slug": "^3.3.2",
+    "slug": "^3.3.4",
     "universal-analytics": "^0.4.23",
     "winston": "^3.3.3",
     "yargs": "^15.4.1"
