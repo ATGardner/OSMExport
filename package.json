@@ -29,7 +29,7 @@
     "gpx": "git+https://github.com/kchapelier/gpx.git",
     "lodash": "^4.17.20",
     "moment": "^2.27.0",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^2.6.1",
     "osmtogeojson": "^3.0.0-beta.4",
     "slug": "^3.3.4",
     "universal-analytics": "^0.4.23",
