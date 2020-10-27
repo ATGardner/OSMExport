@@ -12,7 +12,7 @@
   "license": "ISC",
   "devDependencies": {
     "chai": "^4.2.0",
-    "eslint": "^7.12.0",
+    "eslint": "^7.12.1",
     "eslint-config-prettier": "^6.14.0",
     "eslint-config-standard": "^15.0.0",
     "eslint-plugin-import": "^2.22.1",
