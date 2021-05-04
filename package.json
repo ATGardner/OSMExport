@@ -34,6 +34,6 @@
     "slug": "^4.0.4",
     "universal-analytics": "^0.4.23",
     "winston": "^3.3.3",
-    "yargs": "^16.2.0"
+    "yargs": "^17.0.1"
   }
 }
