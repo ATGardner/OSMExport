@@ -1,5 +1,0 @@
-<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="commandLine" type="NodeJSConfigurationType" application-parameters="getRelation 282071 -s 0 -m 1000 --reverse" node-parameters="--experimental-modules" path-to-js-file="commandLine.mjs" working-dir="$PROJECT_DIR$">
-    <method v="2" />
-  </configuration>
-</component>

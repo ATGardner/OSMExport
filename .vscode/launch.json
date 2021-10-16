@@ -55,16 +55,18 @@
       "args": [
         "getRelation",
         "282071",
+        // "13137517",
         "-s",
         "0",
         "-m",
         "1000",
-        "--reverse",
+        // "--reverse",
       ],
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}/commandLine.mjs"
+      "program": "${workspaceFolder}/commandLine.mjs",
+      "console": "integratedTerminal",
     }
   ]
 }

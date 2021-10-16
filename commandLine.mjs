@@ -3,11 +3,12 @@
 import {getLogger} from './src/logger.mjs';
 import {getRelation} from './src/osm2gpx.mjs';
 import {writeFileSync} from 'fs';
+import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs';
 
 const logger = getLogger('commandLine');
 
-const args = yargs
+const args = yargs(hideBin(process.argv))
   .usage('Usage: $0 <command> [options]')
   .example(
     'node $0 -r 282071',
@@ -20,6 +21,7 @@ const args = yargs
       try {
         const {fileName, gpx} = await getRelation(argv);
         writeFileSync(fileName, gpx);
+        logger.info(`Done writing file "${fileName}"`)
       } catch (error) {
         logger.error(error);
       }

@@ -20,7 +20,7 @@ function createGpx(
     creator: 'OpenStreetMap relation export',
     time: timestamp,
   });
-  logger.verbose(`Creating GPX for relation ${id}`);
+  logger.info(`Creating GPX for ${id}`);
   markers.forEach(
     ({
       properties: {marker},
