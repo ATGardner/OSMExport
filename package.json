@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "express": "^4.17.1",
-    "geodesy": "^2.2.1",
+    "geodesy": "^2.3.0",
     "gpx": "git+https://github.com/kchapelier/gpx.git",
     "lodash": "^4.17.21",
     "moment": "^2.29.1",
