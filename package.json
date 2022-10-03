@@ -31,7 +31,7 @@
     "moment": "^2.29.4",
     "node-fetch": "^3.2.10",
     "osmtogeojson": "github:ATGardner/osmtogeojson",
-    "slug": "^8.0.0",
+    "slug": "^8.2.2",
     "universal-analytics": "^0.5.3",
     "winston": "^3.8.2",
     "yargs": "^17.5.1"
