@@ -34,7 +34,7 @@
     "slug": "^8.0.0",
     "universal-analytics": "^0.5.3",
     "winston": "^3.8.2",
-    "yargs": "^17.5.1"
+    "yargs": "^17.6.0"
   },
   "overrides": {
     "@mapbox/geojson-rewind": "^0.5.2",
