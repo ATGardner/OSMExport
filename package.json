@@ -30,7 +30,7 @@
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
     "node-fetch": "^3.2.10",
-    "osmtogeojson": "github:ATGardner/osmtogeojson",
+    "osmtogeojson": "^3.0.0-beta.5",
     "slug": "^8.2.2",
     "universal-analytics": "^0.5.3",
     "winston": "^3.8.2",

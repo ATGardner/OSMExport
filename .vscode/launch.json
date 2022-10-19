@@ -16,7 +16,7 @@
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "type": "pwa-node"
+      "type": "node"
     },
     {
       "name": "npm - cmd",
@@ -37,10 +37,10 @@
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "type": "pwa-node"
+      "type": "node"
     },
     {
-      "type": "pwa-node",
+      "type": "node",
       "request": "launch",
       "name": "Launch Server",
       "skipFiles": [
@@ -49,7 +49,7 @@
       "program": "${workspaceFolder}/index.mjs"
     },
     {
-      "type": "pwa-node",
+      "type": "node",
       "request": "launch",
       "name": "Launch CommandLine",
       "args": [
@@ -60,13 +60,13 @@
         "0",
         "-m",
         "1000",
-        // "--reverse",
+        "--reverse",
       ],
       "skipFiles": [
         "<node_internals>/**"
       ],
       "program": "${workspaceFolder}/commandLine.mjs",
-      "console": "integratedTerminal",
+      // "console": "internalConsole",
     }
   ]
 }
