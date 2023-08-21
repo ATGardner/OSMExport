@@ -26,18 +26,20 @@
         "cmd",
         "--",
         "getRelation",
-        "282071",
+        // "282071", // int
+        "13137517", // old int
         "-s",
         "0",
         "-m",
         "1000",
-        "--reverse",
+        // "--reverse",
       ],
       "runtimeExecutable": "npm",
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "type": "node"
+      "type": "node",
+      "runtimeVersion": "20.5.1"
     },
     {
       "type": "node",
