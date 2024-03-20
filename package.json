@@ -32,7 +32,7 @@
     "osmtogeojson": "^3.0.0-beta.5",
     "slug": "^8.2.3",
     "universal-analytics": "^0.5.3",
-    "winston": "^3.11.0",
+    "winston": "^3.12.0",
     "yargs": "^17.7.2"
   },
   "overrides": {
