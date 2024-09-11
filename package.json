@@ -23,7 +23,7 @@
     "prettier": "^3.3.3"
   },
   "dependencies": {
-    "express": "^4.19.2",
+    "express": "^4.20.0",
     "geodesy": "^2.4.0",
     "gpx": "github:kchapelier/gpx",
     "lodash": "^4.17.21",
