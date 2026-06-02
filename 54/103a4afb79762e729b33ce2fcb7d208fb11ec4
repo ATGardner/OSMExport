@@ -1,0 +1,26 @@
+package.json
+  s_ecf86d58e95609::t_fd4ca0e8558054 17,19,22
+eslint.config.mjs
+  s_ecf86d58e95609::t_c97cd20d26fe9b 2
+  s_ecf86d58e95609::t_52a1919030bf19 6-7,10-16
+  s_ecf86d58e95609::t_a3a11d84516cac 1,3,19,21,64,80
+prettier.config.js
+  s_ecf86d58e95609::t_d8dbe650ab162b 9-12
+  s_ecf86d58e95609::t_ab26eea5fda4d9 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "54103a4afb79762e729b33ce2fcb7d208fb11ec4",
+  "prompts": {},
+  "sessions": {
+    "s_ecf86d58e95609": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e2443558-2fc3-402b-bb54-5ee9f737f749",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Noam Gal <noam.gal@octopus.com>"
+    }
+  }
+}
