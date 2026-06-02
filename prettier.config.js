@@ -6,4 +6,9 @@ module.exports = {
   trailingComma: 'all',
   bracketSpacing: false,
   jsxBracketSameLine: true,
+  /*
+   * Preserve each file's existing line endings (repo is committed with CRLF).
+   * Mirrors the old `linebreak-style: 'off'` from .eslintrc.js.
+   */
+  endOfLine: 'auto',
 };
