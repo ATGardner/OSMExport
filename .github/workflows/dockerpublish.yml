@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Build and push Docker images
-        uses: docker/build-push-action@v1.1.0
+        uses: docker/build-push-action@v1.1.2
         with:
           repository: atgardner/osmexport/osmexport
           username: ${{ github.actor }}
