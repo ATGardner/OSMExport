@@ -29,14 +29,24 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: docker.pkg.github.com
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: docker.pkg.github.com/atgardner/osmexport/osmexport
+
       - name: Build and push Docker images
         uses: docker/build-push-action@v7.2.0
         with:
-          repository: atgardner/osmexport/osmexport
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          registry: docker.pkg.github.com
-          dockerfile: docker/Dockerfile
-          tag_with_ref: true
-          tag_with_sha: true
-          add_git_labels: true
+          context: .
+          file: docker/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
