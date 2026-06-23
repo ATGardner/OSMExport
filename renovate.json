@@ -4,6 +4,11 @@
     "config:recommended",
     ":prHourlyLimitNone"
   ],
+  "labels": ["dependencies"],
+  "timezone": "Asia/Jerusalem",
+  "lockFileMaintenance": {
+    "enabled": true
+  },
   "prHourlyLimit": 0,
   "minimumReleaseAge": "3 days",
   "minimumReleaseAgeBehaviour": "timestamp-optional",
