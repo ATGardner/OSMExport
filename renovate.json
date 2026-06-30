@@ -4,15 +4,18 @@
     "config:recommended",
     ":prHourlyLimitNone"
   ],
-  "labels": ["dependencies"],
+  "labels": [
+    "dependencies"
+  ],
   "timezone": "Asia/Jerusalem",
   "lockFileMaintenance": {
     "enabled": true
   },
   "prHourlyLimit": 0,
+  "rangeStrategy": "bump",
   "minimumReleaseAge": "3 days",
   "minimumReleaseAgeBehaviour": "timestamp-optional",
-  "rebaseWhen": "behind-base-branch",
+  "rebaseWhen": "behind-base-brFDanch",
   "packageRules": [
     {
       "matchUpdateTypes": [
@@ -22,13 +25,23 @@
       "automerge": true
     },
     {
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest"
+      ],
       "enabled": false
     },
     {
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["major"],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
       "groupName": "github actions",
       "pinDigests": true
     },
@@ -40,9 +53,15 @@
       "automerge": true
     },
     {
-      "matchDepTypes": ["engines"],
-      "matchPackageNames": ["node"],
-      "matchUpdateTypes": ["major"],
+      "matchDepTypes": [
+        "engines"
+      ],
+      "matchPackageNames": [
+        "node"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
       "enabled": true
     }
   ]
