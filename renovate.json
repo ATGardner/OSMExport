@@ -14,7 +14,7 @@
   "prHourlyLimit": 0,
   "minimumReleaseAge": "3 days",
   "minimumReleaseAgeBehaviour": "timestamp-optional",
-  "rebaseWhen": "behind-base-brFDanch",
+  "rebaseWhen": "behind-base-branch",
   "packageRules": [
     {
       "matchUpdateTypes": [
