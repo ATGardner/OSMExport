@@ -11,7 +11,6 @@
   "lockFileMaintenance": {
     "enabled": true
   },
-  "prHourlyLimit": 0,
   "minimumReleaseAge": "3 days",
   "minimumReleaseAgeBehaviour": "timestamp-optional",
   "rebaseWhen": "behind-base-branch",
