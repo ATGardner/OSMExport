@@ -12,13 +12,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Run tests
-        run: |
-          if [ -f docker/docker-compose.test.yml ]; then
-            docker-compose --file docker/docker-compose.test.yml build
-            docker-compose --file docker/docker-compose.test.yml run sut
-          else
-            docker build --file docker/Dockerfile .
-          fi
+        run: docker build .
 
   # Push image to GitHub Packages.
   push:
@@ -46,7 +40,6 @@ jobs:
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
         with:
           context: .
-          file: docker/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

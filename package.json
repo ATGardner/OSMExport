@@ -3,7 +3,7 @@
   "version": "2.0.1",
   "description": "",
   "type": "module",
-  "main": "index.mjs",
+  "main": "index.ts",
   "scripts": {
     "start": "node index.ts",
     "cmd": "node commandLine.ts",
