@@ -2,6 +2,7 @@
   "name": "osm-export",
   "version": "2.0.1",
   "description": "",
+  "type": "module",
   "main": "index.mjs",
   "scripts": {
     "lint": "eslint --fix src/**/*.mjs",
