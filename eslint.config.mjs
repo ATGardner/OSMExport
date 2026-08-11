@@ -1,24 +1,22 @@
 import globals from 'globals';
 import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
 import prettierRecommended from 'eslint-plugin-prettier/recommended';
 
-export default [
+export default tseslint.config(
   js.configs.recommended,
-  // Adds the `prettier` plugin and disables stylistic rules that conflict with it.
+  ...tseslint.configs.recommendedTypeChecked,
   prettierRecommended,
   {
     languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
-      globals: {
-        ...globals.node,
-      },
+      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+      globals: { ...globals.node },
     },
     rules: {
       // Fixable - errors
-      'one-var': ['error', {const: 'never', let: 'never'}],
+      'one-var': ['error', { const: 'never', let: 'never' }],
       'dot-notation': 'error',
-      'no-else-return': ['error', {allowElseIf: false}],
+      'no-else-return': ['error', { allowElseIf: false }],
       'capitalized-comments': 'error',
       'linebreak-style': 'off',
       'lines-between-class-members': 'error',
@@ -61,7 +59,7 @@ export default [
       'consistent-this': 'warn',
       'func-name-matching': 'warn',
       'func-names': 'warn',
-      'func-style': ['warn', 'declaration', {allowArrowFunctions: true}],
+      'func-style': ['warn', 'declaration', { allowArrowFunctions: true }],
       'line-comment-position': 'warn',
       'max-depth': 'warn',
       'max-nested-callbacks': 'warn',
@@ -77,4 +75,4 @@ export default [
       'prefer-rest-params': 'warn',
     },
   },
-];
+);
