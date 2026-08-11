@@ -39,7 +39,7 @@
         "<node_internals>/**"
       ],
       "type": "node",
-      "runtimeVersion": "20.5.1"
+      "runtimeVersion": ">24.0.0"
     },
     {
       "type": "node",
