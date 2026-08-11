@@ -1,21 +1,18 @@
-'use strict';
-
-import fetch from 'node-fetch';
-
-async function overpassQuery(query) {
+async function overpassQuery(query: string) {
   const body = `[out:json][timeout:25];${query}`;
   const result = await fetch('http://overpass-api.de/api/interpreter', {
     method: 'POST',
     body,
   });
   if (!result.ok) {
-    throw new Error(result.status);
+    const body = await result.json().catch(() => ({})) as any;
+    throw new Error(body.error || `Request failed with status ${result.status}`);
   }
 
   return result.json();
 }
 
-export function fetchRelation(relationId) {
+export function fetchRelation(relationId: string) {
   return overpassQuery(`
     relation(${relationId});
     (._;>;);
@@ -23,7 +20,7 @@ export function fetchRelation(relationId) {
   `);
 }
 
-export function fetchNodesInRelation(relationId) {
+export function fetchNodesInRelation(relationId: string) {
   return overpassQuery(`
     relation(${relationId}) -> .r;
     way(r.r) -> .w;
