@@ -1,9 +1,9 @@
 'use strict';
 
-import {getLogger} from './src/logger.mjs';
-import {getRelation} from './src/osm2gpx.mjs';
+import {getLogger} from './src/logger.ts';
+import {getRelation} from './src/osm2gpx.ts';
 import {writeFileSync} from 'fs';
-import { hideBin } from 'yargs/helpers';
+import {hideBin} from 'yargs/helpers';
 import yargs from 'yargs';
 
 const logger = getLogger('commandLine');
@@ -21,7 +21,7 @@ const args = yargs(hideBin(process.argv))
       try {
         const {fileName, gpx} = await getRelation(argv);
         writeFileSync(fileName, gpx);
-        logger.info(`Done writing file "${fileName}"`)
+        logger.info(`Done writing file "${fileName}"`);
       } catch (error) {
         logger.error(error);
       }

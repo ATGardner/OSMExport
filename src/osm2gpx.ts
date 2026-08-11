@@ -1,19 +1,52 @@
-'use strict';
-
 import LatLon from 'geodesy/latlon-ellipsoidal-vincenty.js';
 import _ from 'lodash';
-import {getFullRelation} from './osm/osmWrapper.mjs';
-import {getLogger} from './logger.mjs';
+import {getFullRelation} from './osm/osmWrapper.ts';
+import {getLogger} from './logger.ts';
 import gpx from 'gpx';
 import moment from 'moment';
+import type {
+  Feature,
+  LineString,
+  MultiLineString,
+  Point,
+  Position,
+} from 'geojson';
 
 const logger = getLogger('osm2gpx');
 
+type RelationProps = {
+  name: string;
+  'name:en'?: string;
+  timestamp: string;
+};
+
+type RelationFeature = Feature<LineString | MultiLineString, RelationProps>;
+
+type MarkerFeature = Feature<Point, {marker: number}>;
+
+export interface RelationRequest {
+  relationId: string | number;
+  segmentLimit?: string | number;
+  markerDiff?: string | number;
+  reverse?: boolean | string;
+}
+
+function waysOf(geometry: LineString | MultiLineString): Position[][] {
+  return geometry.type === 'LineString'
+    ? [geometry.coordinates]
+    : geometry.coordinates;
+}
+
 function createGpx(
-  {id, geometry: {coordinates, type}, properties: {name, timestamp}},
-  markers,
-  limit,
-) {
+  relation: RelationFeature,
+  markers: MarkerFeature[],
+  limit: number,
+): string {
+  const {
+    id,
+    geometry,
+    properties: {name, timestamp},
+  } = relation;
   const builder = new gpx.GpxFileBuilder({
     description: 'Data extracted from OSM',
     name,
@@ -31,12 +64,11 @@ function createGpx(
       builder.addWayPoints({
         latitude,
         longitude,
-        name: marker,
+        name: String(marker),
       });
     },
   );
-  const ways = type === 'LineString' ? [coordinates] : coordinates;
-  ways.forEach((way, i) => {
+  waysOf(geometry).forEach((way, i) => {
     const pointData = way.map(([longitude, latitude]) => ({
       latitude,
       longitude,
@@ -55,7 +87,11 @@ function createGpx(
   return builder.xml();
 }
 
-function createMarkerFeature(lat, lon, marker) {
+function createMarkerFeature(
+  lat: number,
+  lon: number,
+  marker: number,
+): MarkerFeature {
   logger.verbose(`Creating marker, (${lat}, ${lon}) - ${marker}`);
   return {
     type: 'Feature',
@@ -69,13 +105,15 @@ function createMarkerFeature(lat, lon, marker) {
   };
 }
 
-function addMarkers({geometry: {coordinates, type}}, markerDiff) {
-  const ways = type === 'LineString' ? [coordinates] : coordinates;
-  const markers = [];
+function addMarkers(
+  relation: RelationFeature,
+  markerDiff: number,
+): MarkerFeature[] {
+  const markers: MarkerFeature[] = [];
   let prevDistance = 0;
   let prevMarker = 0;
-  let prevLatLon = 0;
-  ways.forEach((way) => {
+  let prevLatLon: LatLon | null = null;
+  waysOf(relation.geometry).forEach((way) => {
     way.forEach(([lon, lat]) => {
       if (prevLatLon) {
         const latLon = new LatLon(lat, lon);
@@ -108,20 +146,30 @@ export async function getRelation({
   segmentLimit = 0,
   markerDiff = 1000,
   reverse,
-}) {
-  const geoJson = await getFullRelation(relationId);
-  const relation = geoJson.features.find((f) => f.id.startsWith('relation'));
+}: RelationRequest): Promise<{fileName: string; gpx: string}> {
+  const id = String(relationId);
+  const limit = Number(segmentLimit);
+  const diff = Number(markerDiff);
+  const geoJson = await getFullRelation(id);
+  const relation = geoJson.features.find(
+    (f): f is RelationFeature =>
+      typeof f.id === 'string' && f.id.startsWith('relation'),
+  );
+  if (!relation) {
+    throw new Error(`No relation feature found for ${id}`);
+  }
+
   if (reverse) {
     relation.geometry.coordinates.reverse();
   }
 
-  const markers = addMarkers(relation, markerDiff);
+  const markers = addMarkers(relation, diff);
   const {
     properties: {name, 'name:en': nameEn = name, timestamp},
   } = relation;
   const fileName = `${nameEn}-${moment(timestamp).format('YY-MM-DD')}.gpx`;
   return {
     fileName,
-    gpx: createGpx(relation, markers, +segmentLimit),
+    gpx: createGpx(relation, markers, limit),
   };
 }

@@ -3,6 +3,9 @@ async function overpassQuery(query: string) {
   const result = await fetch('http://overpass-api.de/api/interpreter', {
     method: 'POST',
     body,
+    // Overpass rejects undici's default `User-Agent: node` with a 406.
+    // node-fetch used to send its own UA, so this only surfaced once it went.
+    headers: {'User-Agent': 'OSMExport/2.0.1'},
   });
   if (!result.ok) {
     const body = await result.json().catch(() => ({})) as any;
