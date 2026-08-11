@@ -1,11 +1,9 @@
-'use strict';
-
-import express from 'express';
-import {getLogger} from './logger.ts';
-import {getRelation} from './osm2gpx.ts';
+import express, { type RequestHandler } from 'express';
+import { getLogger } from './logger.ts';
+import { getRelation, type RelationRequest } from './osm2gpx.ts';
 import moment from 'moment';
 import slug from 'slug';
-import ua from 'universal-analytics';
+import ua, { Visitor } from 'universal-analytics';
 
 const app = express();
 
@@ -13,10 +11,10 @@ const logger = getLogger('app');
 
 slug.defaults.mode = 'rfc3986';
 if (app.get('env') === 'production') {
-  app.use(ua.middleware('UA-18054605-12', {cookieName: '_ga'}));
+  app.use(ua.middleware('UA-18054605-12', { cookieName: '_ga' }));
 }
 
-function sendEvent(visitor, action, label) {
+function sendEvent(visitor: Visitor | undefined, action: string, label: string) {
   logger.info(`${action} - ${label}`);
   if (visitor) {
     visitor
@@ -30,7 +28,7 @@ function sendEvent(visitor, action, label) {
   }
 }
 
-function sendTiming(visitor, variable, time) {
+function sendTiming(visitor: Visitor | undefined, variable: string, time: number) {
   logger.info(`${variable} - ${time}ms`);
   if (visitor) {
     visitor
@@ -44,25 +42,22 @@ function sendTiming(visitor, variable, time) {
   }
 }
 
-/*
- *http://localhost:3000/osm2gpx?relationId=1660381&combineWays=0
- *http://localhost:3000/osm2gpx?relationId=282071&combineWays=1&segmentLimit=9000
- *http://localhost:3000/osm2gpx?relationId=6738379&combineWays=1&segmentLimit=9000
- *INT - http://localhost:3000/osm2gpx?relationId=282071&markerDiff=1609.34
- *JMT - http://localhost:3000/osm2gpx?relationId=1244828&markerDiff=1609.34&reverse=1&segmentLimit=0
- * 6148296 - ramon crater
- */
-app.get('/osm2gpx', async ({query, query: {relationId}, visitor}, res) => {
+const handler: RequestHandler<
+  Record<string, never>, // route params — none on this route
+  string,                // response body
+  never,                 // request body — it's a GET
+  RelationRequest        // query
+> = async ({ query, query: { relationId }, visitor }, res) => {
   const start = moment();
-  sendEvent(visitor, 'Creating gpx', relationId);
+  sendEvent(visitor, 'Creating gpx', String(relationId));
   try {
-    const {fileName, gpx} = await getRelation(query);
+    const { fileName, gpx } = await getRelation(query);
     const end = moment().diff(start);
     sendTiming(visitor, 'getRelationTime', end);
     const safeFileName = encodeURI(
       slug(fileName, {
         // Replace spaces with replacement
-        replacement: (c) => c,
+        replacement: ' ',
         // Replace unicode symbols or not
         symbols: false,
         // (optional) regex to remove characters
@@ -87,7 +82,17 @@ app.get('/osm2gpx', async ({query, query: {relationId}, visitor}, res) => {
     logger.error('Error Occured', error);
     res.set('Content-Type', 'text/plain').status(500).send('An error occured');
   }
-});
+}
+
+/*
+ *http://localhost:3000/osm2gpx?relationId=1660381&combineWays=0
+ *http://localhost:3000/osm2gpx?relationId=282071&combineWays=1&segmentLimit=9000
+ *http://localhost:3000/osm2gpx?relationId=6738379&combineWays=1&segmentLimit=9000
+ *INT - http://localhost:3000/osm2gpx?relationId=282071&markerDiff=1609.34
+ *JMT - http://localhost:3000/osm2gpx?relationId=1244828&markerDiff=1609.34&reverse=1&segmentLimit=0
+ * 6148296 - ramon crater
+ */
+app.get('/osm2gpx', handler);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
