@@ -5,9 +5,11 @@
   "type": "module",
   "main": "index.mjs",
   "scripts": {
-    "lint": "eslint --fix src/**/*.mjs",
-    "start": "node index.mjs",
-    "cmd": "node commandLine.mjs"
+    "start": "node index.ts",
+    "cmd": "node commandLine.ts",
+    "typecheck": "tsc --noEmit",
+    "typecheck:6": "tsc6 --noEmit",
+    "lint": "eslint --fix ."
   },
   "author": "",
   "license": "ISC",
