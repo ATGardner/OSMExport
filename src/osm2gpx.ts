@@ -1,9 +1,3 @@
-import LatLon from 'geodesy/latlon-ellipsoidal-vincenty.js';
-import _ from 'lodash';
-import {getFullRelation} from './osm/osmWrapper.ts';
-import {getLogger} from './logger.ts';
-import gpx from 'gpx';
-import moment from 'moment';
 import type {
   Feature,
   LineString,
@@ -11,6 +5,12 @@ import type {
   Point,
   Position,
 } from 'geojson';
+import LatLon from 'geodesy/latlon-ellipsoidal-vincenty.js';
+import _ from 'lodash';
+import {getFullRelation} from './osm/osmWrapper.ts';
+import {getLogger} from './logger.ts';
+import gpx from 'gpx';
+import moment from 'moment';
 
 const logger = getLogger('osm2gpx');
 

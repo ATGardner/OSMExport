@@ -1,7 +1,7 @@
 import globals from 'globals';
 import js from '@eslint/js';
-import tseslint from 'typescript-eslint';
 import prettierRecommended from 'eslint-plugin-prettier/recommended';
+import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   js.configs.recommended,
@@ -9,14 +9,24 @@ export default tseslint.config(
   prettierRecommended,
   {
     languageOptions: {
-      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
-      globals: { ...globals.node },
+      parserOptions: {
+        /*
+         * The config files sit outside tsconfig's `include`, so the project
+         * service has no program for them. allowDefaultProject lints them
+         * against an inferred default project instead.
+         */
+        projectService: {
+          allowDefaultProject: ['eslint.config.mjs', 'prettier.config.cjs'],
+        },
+        tsconfigRootDir: import.meta.dirname,
+      },
+      globals: {...globals.node},
     },
     rules: {
       // Fixable - errors
-      'one-var': ['error', { const: 'never', let: 'never' }],
+      'one-var': ['error', {const: 'never', let: 'never'}],
       'dot-notation': 'error',
-      'no-else-return': ['error', { allowElseIf: false }],
+      'no-else-return': ['error', {allowElseIf: false}],
       'capitalized-comments': 'error',
       'linebreak-style': 'off',
       'lines-between-class-members': 'error',
@@ -59,7 +69,7 @@ export default tseslint.config(
       'consistent-this': 'warn',
       'func-name-matching': 'warn',
       'func-names': 'warn',
-      'func-style': ['warn', 'declaration', { allowArrowFunctions: true }],
+      'func-style': ['warn', 'declaration', {allowArrowFunctions: true}],
       'line-comment-position': 'warn',
       'max-depth': 'warn',
       'max-nested-callbacks': 'warn',

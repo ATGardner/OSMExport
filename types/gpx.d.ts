@@ -14,12 +14,15 @@ declare module 'gpx' {
     name?: string;
     time?: string;
   }
-  class GpxFileBuilder {
-    constructor(meta?: GpxFileMeta);
+  export interface GpxFileBuilder {
     addWayPoints(points: GpxPoint | GpxPoint[]): this;
+
     addTrack(meta: GpxTrackMeta, points: GpxPoint[]): this;
+
     xml(): string;
   }
-  const gpx: { GpxFileBuilder: typeof GpxFileBuilder };
+  const gpx: {
+    GpxFileBuilder: new (meta?: GpxFileMeta) => GpxFileBuilder;
+  };
   export = gpx;
 }

@@ -11,12 +11,19 @@
 declare module 'geodesy/latlon-ellipsoidal-vincenty.js' {
   class LatLonEllipsoidalVincenty {
     constructor(lat: number, lon: number, height?: number);
+
     get lat(): number;
+
     get lon(): number;
+
     get height(): number;
+
     distanceTo(point: LatLonEllipsoidalVincenty): number;
+
     initialBearingTo(point: LatLonEllipsoidalVincenty): number;
+
     finalBearingTo(point: LatLonEllipsoidalVincenty): number;
+
     destinationPoint(
       distance: number,
       initialBearing: number,

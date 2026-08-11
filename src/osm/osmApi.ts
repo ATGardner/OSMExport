@@ -1,15 +1,23 @@
+interface OverpassError {
+  error?: string;
+}
+
 async function overpassQuery(query: string) {
   const body = `[out:json][timeout:25];${query}`;
   const result = await fetch('http://overpass-api.de/api/interpreter', {
     method: 'POST',
     body,
-    // Overpass rejects undici's default `User-Agent: node` with a 406.
-    // node-fetch used to send its own UA, so this only surfaced once it went.
+    /*
+     * Overpass rejects undici's default `User-Agent: node` with a 406.
+     * node-fetch used to send its own UA, so this only surfaced once it went.
+     */
     headers: {'User-Agent': 'OSMExport/2.0.1'},
   });
   if (!result.ok) {
-    const body = await result.json().catch(() => ({})) as any;
-    throw new Error(body.error || `Request failed with status ${result.status}`);
+    const errorBody = (await result.json().catch(() => ({}))) as OverpassError;
+    throw new Error(
+      errorBody.error || `Request failed with status ${result.status}`,
+    );
   }
 
   return result.json();

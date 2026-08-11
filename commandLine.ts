@@ -6,7 +6,7 @@ import yargs from 'yargs';
 
 const logger = getLogger('commandLine');
 
-yargs(hideBin(process.argv))
+await yargs(hideBin(process.argv))
   .usage('Usage: $0 <command> [options]')
   .example(
     'node $0 getRelation 282071',

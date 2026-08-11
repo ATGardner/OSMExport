@@ -1,4 +1,4 @@
-import type { Visitor } from 'universal-analytics';
+import type {Visitor} from 'universal-analytics';
 
 declare global {
   namespace Express {
@@ -8,4 +8,4 @@ declare global {
   }
 }
 
-export { };
+export {};
