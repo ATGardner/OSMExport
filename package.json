@@ -9,7 +9,8 @@
     "cmd": "node commandLine.ts",
     "typecheck": "tsc --noEmit",
     "typecheck:6": "tsc6 --noEmit",
-    "lint": "eslint --fix ."
+    "lint": "eslint --fix .",
+    "lint:ci": "eslint ."
   },
   "author": "",
   "license": "ISC",

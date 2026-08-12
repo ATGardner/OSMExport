@@ -1,0 +1,83 @@
+name: Prune main images
+
+# `main` is never deleted, so prune-branch-images.yml never fires for it. These
+# accumulate one version per push, so they age out on a schedule instead.
+#
+# Three things are never deleted, whatever their age:
+#   - the version currently tagged `main` — that is what the cluster deploys,
+#     and main can easily go quiet for longer than the cut-off
+#   - anything tagged `latest` or `vX.Y.Z` — a release build can land on the
+#     same digest as the `main-<sha>` build of the same commit, and deleting a
+#     version takes every tag on it
+#   - anything newer than the cut-off
+on:
+  schedule:
+    - cron: '0 4 * * 0'
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Only list what would be deleted
+        required: false
+        default: true
+        type: boolean
+      days:
+        description: Delete main images older than this many days
+        required: false
+        default: '30'
+        type: string
+
+permissions: {}
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: atgardner
+      PACKAGE: osmexport
+      DAYS: ${{ inputs.days || '30' }}
+      DRY_RUN: ${{ inputs.dry-run || 'false' }}
+    steps:
+      - name: Delete aged-out main images
+        run: |
+          set -euo pipefail
+
+          cutoff=$(date -u -d "$DAYS days ago" +%Y-%m-%dT%H:%M:%SZ)
+          echo "Cut-off: $cutoff (dry-run: $DRY_RUN)"
+
+          versions=$(gh api --paginate \
+            "/users/$OWNER/packages/container/$PACKAGE/versions" \
+            --jq '.[] | {id, updated_at, tags: (.metadata.container.tags // [])}' \
+            | jq -s '.')
+          echo "Read $(printf '%s' "$versions" | jq 'length') version(s) from the package."
+
+          targets=$(printf '%s' "$versions" | jq -c --arg cutoff "$cutoff" '
+            map(select(
+              (.tags | any(startswith("main-")))
+              and ((.tags | any(
+                . == "main" or . == "latest" or test("^v[0-9]")
+              )) | not)
+              and (.updated_at < $cutoff)
+            ))')
+
+          count=$(printf '%s' "$targets" | jq 'length')
+          echo "Matched $count version(s):"
+          printf '%s' "$targets" | jq -r '.[] | "  id=\(.id) \(.updated_at) tags=\(.tags | join(","))"'
+
+          if [ "$count" -eq 0 ]; then
+            echo "Nothing to do."
+            exit 0
+          fi
+
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run — no deletions performed."
+            exit 0
+          fi
+
+          printf '%s' "$targets" | jq -r '.[].id' | while read -r id; do
+            echo "Deleting version $id"
+            gh api --method DELETE \
+              "/users/$OWNER/packages/container/$PACKAGE/versions/$id"
+          done

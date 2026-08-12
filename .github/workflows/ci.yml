@@ -1,0 +1,75 @@
+name: CI
+
+# Every push to every branch, main included — `main` and `main-<short-sha>` give
+# you something deployable from the tip of main before a release is cut.
+on:
+  push:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  verify:
+    name: Typecheck and lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm run lint:ci
+
+  # Release-please's branch only bumps the version and rewrites the changelog,
+  # and it is force-pushed on every merge to main — an image per force-push, and
+  # nothing ever pulls it. `verify` still runs there so branch protection's
+  # required checks can be satisfied on the release PR.
+  image:
+    name: Build and push image
+    needs: verify
+    if: ${{ !startsWith(github.ref_name, 'release-please--') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Produces two tags, e.g. on branch `typescript` at commit a1b2c3d:
+      #   ghcr.io/atgardner/osmexport:typescript
+      #   ghcr.io/atgardner/osmexport:typescript-a1b2c3d
+      # Slashes in branch names are slugified, so `renovate/foo` -> `renovate-foo`.
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9 # v6.1.0
+        with:
+          images: ghcr.io/atgardner/osmexport
+          tags: |
+            type=ref,event=branch
+            type=sha,format=short,prefix={{branch}}-
+
+      - name: Build and push
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
