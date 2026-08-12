@@ -73,3 +73,57 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  chart:
+    name: Package and push chart
+    needs: image
+    if: ${{ !startsWith(github.ref_name, 'release-please--') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      CHARTS: oci://ghcr.io/atgardner/charts
+      CHART_REF: ghcr.io/atgardner/charts/osmexport
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Log in to GitHub Container Registry
+        run: |
+          echo '${{ secrets.GITHUB_TOKEN }}' \
+            | helm registry login ghcr.io -u '${{ github.actor }}' --password-stdin
+
+      - name: Package and push
+        run: |
+          set -euo pipefail
+
+          # Two slugs, deliberately. The image tag is whatever metadata-action
+          # produced (it permits `.` and `_`); a chart version is SemVer, whose
+          # pre-release identifiers allow only [0-9A-Za-z-]. They can differ, and
+          # that is fine — the chart version is a label, while --app-version
+          # carries the exact image tag the chart will deploy.
+          image_slug=$(printf '%s' "$GITHUB_REF_NAME" | tr '[:upper:]' '[:lower:]' \
+            | sed 's#[^a-z0-9._-]#-#g')
+          chart_slug=$(printf '%s' "$GITHUB_REF_NAME" | tr '[:upper:]' '[:lower:]' \
+            | sed 's#[^a-z0-9-]#-#g')
+          short="${GITHUB_SHA:0:7}"
+
+          # Branch charts are pre-releases of the release this branch is built
+          # on, so they read as "2.0.1 plus this branch" rather than a bare
+          # 0.0.0. release-please owns this file, so it is the source of truth.
+          base=$(jq -r '."."' .release-please-manifest.json)
+          echo "base: $base | image slug: $image_slug | chart slug: $chart_slug | sha: $short"
+
+          # Per-commit chart: pins the matching per-commit image.
+          helm package charts/osmexport \
+            --version "$base-$chart_slug-$short" \
+            --app-version "$image_slug-$short"
+          helm push "osmexport-$base-$chart_slug-$short.tgz" "$CHARTS"
+
+          # Moving branch chart: its appVersion is the moving `<branch>` image
+          # tag, so it always resolves to the newest build of this branch.
+          # Re-pushed every commit so template changes land in it too.
+          helm package charts/osmexport \
+            --version "$base-$chart_slug" \
+            --app-version "$image_slug"
+          helm push "osmexport-$base-$chart_slug.tgz" "$CHARTS"

@@ -1,17 +1,21 @@
 name: Prune branch images
 
-# Branch images live exactly as long as their branch. When a branch is deleted,
-# drop the `<branch>` and `<branch>-<short-sha>` versions CI pushed for it.
+# Branch artifacts live exactly as long as their branch: when a branch is
+# deleted, drop the images and charts CI published for it.
 #
-# workflow_dispatch is here so this can be exercised without deleting a branch —
-# and because `delete` events only ever run the copy of this file on the default
-# branch, so it does nothing until it lands on main.
+# Two packages, two tag shapes:
+#   osmexport         `<slug>` and `<slug>-<sha>`
+#   charts/osmexport  `0.0.0-<slug>` and `0.0.0-<slug>-<sha>`
+#
+# Never deleted: anything also tagged `latest`, `vX.Y.Z` or a bare `X.Y.Z`.
+# A release artifact can share a digest with the branch artifact of the same
+# commit, and deleting a version takes every tag on it.
 on:
   delete:
   workflow_dispatch:
     inputs:
       branch:
-        description: Branch whose images should be pruned
+        description: Branch whose artifacts should be pruned
         required: true
         type: string
       dry-run:
@@ -31,48 +35,67 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       OWNER: atgardner
-      PACKAGE: osmexport
       BRANCH: ${{ inputs.branch || github.event.ref }}
       DRY_RUN: ${{ inputs.dry-run || 'false' }}
     steps:
-      - name: Delete image versions for the branch
+      - name: Delete versions for the branch
         run: |
           set -euo pipefail
 
-          # Mirror docker/metadata-action's slugging: lowercase, and anything
-          # that isn't a legal tag character (notably `/`) becomes `-`.
-          slug=$(printf '%s' "$BRANCH" | tr '[:upper:]' '[:lower:]' | sed 's#[^a-z0-9._-]#-#g')
-          echo "Branch '$BRANCH' -> tag prefix '$slug' (dry-run: $DRY_RUN)"
+          # Mirrors docker/metadata-action's slugging, and the stricter
+          # SemVer-safe slug ci.yml uses for chart versions.
+          image_slug=$(printf '%s' "$BRANCH" | tr '[:upper:]' '[:lower:]' | sed 's#[^a-z0-9._-]#-#g')
+          chart_slug=$(printf '%s' "$BRANCH" | tr '[:upper:]' '[:lower:]' | sed 's#[^a-z0-9-]#-#g')
+          # `.` is legal in an image slug and special in a regex.
+          image_re=$(printf '%s' "$image_slug" | sed 's#\.#\\.#g')
+          echo "Branch '$BRANCH' (dry-run: $DRY_RUN)"
 
-          versions=$(gh api --paginate \
-            "/users/$OWNER/packages/container/$PACKAGE/versions" \
-            --jq '.[] | {id, tags: (.metadata.container.tags // [])}' | jq -s '.')
+          prune_package() {
+            local pkg="$1" match="$2" label="$3"
+            echo "--- $label: tags matching /$match/"
 
-          # Match `<slug>` and `<slug>-<sha>`, but never touch a version that
-          # also carries a release tag — an unchanged build can produce the same
-          # digest as `latest`, and then both tags sit on one version.
-          targets=$(printf '%s' "$versions" | jq -c --arg slug "$slug" '
-            map(select(
-              (.tags | any(. == $slug or startswith($slug + "-")))
-              and ((.tags | any(. == "latest" or test("^v[0-9]"))) | not)
-            ))')
+            local versions targets count
+            versions=$(gh api --paginate \
+              "/users/$OWNER/packages/container/$pkg/versions" \
+              --jq '.[] | {id, tags: (.metadata.container.tags // [])}' | jq -s '.')
+            echo "    read $(printf '%s' "$versions" | jq 'length') version(s)"
 
-          count=$(printf '%s' "$targets" | jq 'length')
-          echo "Matched $count version(s):"
-          printf '%s' "$targets" | jq -r '.[] | "  id=\(.id) tags=\(.tags | join(","))"'
+            targets=$(printf '%s' "$versions" | jq -c --arg m "$match" '
+              map(select(
+                (.tags | any(test($m)))
+                and ((.tags | any(
+                  . == "latest"
+                  or test("^v[0-9]")
+                  or test("^[0-9]+\\.[0-9]+\\.[0-9]+$")
+                )) | not)
+              ))')
 
-          if [ "$count" -eq 0 ]; then
-            echo "Nothing to do."
-            exit 0
-          fi
+            count=$(printf '%s' "$targets" | jq 'length')
+            echo "    matched $count version(s):"
+            printf '%s' "$targets" | jq -r '.[] | "      id=\(.id) tags=\(.tags | join(","))"'
+
+            if [ "$count" -eq 0 ] || [ "$DRY_RUN" = "true" ]; then
+              return 0
+            fi
+
+            local id
+            for id in $(printf '%s' "$targets" | jq -r '.[].id'); do
+              echo "    deleting $id"
+              gh api --method DELETE \
+                "/users/$OWNER/packages/container/$pkg/versions/$id"
+            done
+          }
+
+          # Chart tags carry whatever release version was current when they were
+          # built, so they are matched by shape rather than by a fixed prefix.
+          # The per-commit suffix is exactly 7 hex chars. Matching that rather
+          # than "anything after a hyphen" stops branch `foo` from also matching
+          # branch `foo-bar`'s tags.
+          prune_package "osmexport" \
+            "^${image_re}(-[0-9a-f]{7})?\$" "images"
+          prune_package "charts%2Fosmexport" \
+            "^[0-9]+\\.[0-9]+\\.[0-9]+-${chart_slug}(-[0-9a-f]{7})?\$" "charts"
 
           if [ "$DRY_RUN" = "true" ]; then
             echo "Dry run — no deletions performed."
-            exit 0
           fi
-
-          printf '%s' "$targets" | jq -r '.[].id' | while read -r id; do
-            echo "Deleting version $id"
-            gh api --method DELETE \
-              "/users/$OWNER/packages/container/$PACKAGE/versions/$id"
-          done

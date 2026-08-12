@@ -1,14 +1,13 @@
 name: Prune main images
 
-# `main` is never deleted, so prune-branch-images.yml never fires for it. These
-# accumulate one version per push, so they age out on a schedule instead.
+# `main` is never deleted, so prune-branch-images.yml never fires for it. Main
+# artifacts accumulate one version per push, so they age out on a schedule.
 #
-# Three things are never deleted, whatever their age:
-#   - the version currently tagged `main` — that is what the cluster deploys,
-#     and main can easily go quiet for longer than the cut-off
-#   - anything tagged `latest` or `vX.Y.Z` — a release build can land on the
-#     same digest as the `main-<sha>` build of the same commit, and deleting a
-#     version takes every tag on it
+# Never deleted, whatever their age:
+#   - the version currently tagged `main` (or `0.0.0-main` for the chart) —
+#     that is what the cluster deploys, and main can go quiet for a while
+#   - anything tagged `latest`, `vX.Y.Z` or a bare `X.Y.Z` — a release artifact
+#     can share a digest with the main artifact of the same commit
 #   - anything newer than the cut-off
 on:
   schedule:
@@ -21,7 +20,7 @@ on:
         default: true
         type: boolean
       days:
-        description: Delete main images older than this many days
+        description: Delete main artifacts older than this many days
         required: false
         default: '30'
         type: string
@@ -36,48 +35,64 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       OWNER: atgardner
-      PACKAGE: osmexport
       DAYS: ${{ inputs.days || '30' }}
       DRY_RUN: ${{ inputs.dry-run || 'false' }}
     steps:
-      - name: Delete aged-out main images
+      - name: Delete aged-out main artifacts
         run: |
           set -euo pipefail
 
           cutoff=$(date -u -d "$DAYS days ago" +%Y-%m-%dT%H:%M:%SZ)
           echo "Cut-off: $cutoff (dry-run: $DRY_RUN)"
 
-          versions=$(gh api --paginate \
-            "/users/$OWNER/packages/container/$PACKAGE/versions" \
-            --jq '.[] | {id, updated_at, tags: (.metadata.container.tags // [])}' \
-            | jq -s '.')
-          echo "Read $(printf '%s' "$versions" | jq 'length') version(s) from the package."
+          prune_package() {
+            local pkg="$1" match="$2" keep="$3" label="$4"
+            echo "--- $label: deleting /$match/, keeping /$keep/"
 
-          targets=$(printf '%s' "$versions" | jq -c --arg cutoff "$cutoff" '
-            map(select(
-              (.tags | any(startswith("main-")))
-              and ((.tags | any(
-                . == "main" or . == "latest" or test("^v[0-9]")
-              )) | not)
-              and (.updated_at < $cutoff)
-            ))')
+            local versions targets count
+            versions=$(gh api --paginate \
+              "/users/$OWNER/packages/container/$pkg/versions" \
+              --jq '.[] | {id, updated_at, tags: (.metadata.container.tags // [])}' \
+              | jq -s '.')
+            echo "    read $(printf '%s' "$versions" | jq 'length') version(s)"
 
-          count=$(printf '%s' "$targets" | jq 'length')
-          echo "Matched $count version(s):"
-          printf '%s' "$targets" | jq -r '.[] | "  id=\(.id) \(.updated_at) tags=\(.tags | join(","))"'
+            targets=$(printf '%s' "$versions" | jq -c \
+              --arg cutoff "$cutoff" --arg m "$match" --arg keep "$keep" '
+              map(select(
+                (.tags | any(test($m)))
+                and ((.tags | any(
+                  test($keep)
+                  or . == "latest"
+                  or test("^v[0-9]")
+                  or test("^[0-9]+\\.[0-9]+\\.[0-9]+$")
+                )) | not)
+                and (.updated_at < $cutoff)
+              ))')
 
-          if [ "$count" -eq 0 ]; then
-            echo "Nothing to do."
-            exit 0
-          fi
+            count=$(printf '%s' "$targets" | jq 'length')
+            echo "    matched $count version(s):"
+            printf '%s' "$targets" | jq -r '.[] | "      id=\(.id) \(.updated_at) tags=\(.tags | join(","))"'
+
+            if [ "$count" -eq 0 ] || [ "$DRY_RUN" = "true" ]; then
+              return 0
+            fi
+
+            local id
+            for id in $(printf '%s' "$targets" | jq -r '.[].id'); do
+              echo "    deleting $id"
+              gh api --method DELETE \
+                "/users/$OWNER/packages/container/$pkg/versions/$id"
+            done
+          }
+
+          # One moving `<base>-main` chart exists per release the branch has
+          # passed through; all of them are kept, and only the per-commit charts
+          # age out.
+          prune_package "osmexport" \
+            "^main-[0-9a-f]{7}\$" "^main\$" "images"
+          prune_package "charts%2Fosmexport" \
+            "^[0-9]+\\.[0-9]+\\.[0-9]+-main-[0-9a-f]{7}\$" "^[0-9]+\\.[0-9]+\\.[0-9]+-main\$" "charts"
 
           if [ "$DRY_RUN" = "true" ]; then
             echo "Dry run — no deletions performed."
-            exit 0
           fi
-
-          printf '%s' "$targets" | jq -r '.[].id' | while read -r id; do
-            echo "Deleting version $id"
-            gh api --method DELETE \
-              "/users/$OWNER/packages/container/$PACKAGE/versions/$id"
-          done
