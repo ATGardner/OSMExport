@@ -1,0 +1,14 @@
+---
+apiVersion: v2
+name: osmexport
+version: 0.1.0
+appVersion: "latest"
+description: Exports OpenStreetMap relations as GPX files
+home: https://github.com/ATGardner/OSMExport
+sources:
+  - https://github.com/ATGardner/OSMExport
+keywords:
+  - openstreetmap
+  - osm
+  - gpx
+  - gis

@@ -8,6 +8,7 @@
   "labels": [
     "dependencies"
   ],
+  "semanticCommits": "enabled",
   "timezone": "Asia/Jerusalem",
   "lockFileMaintenance": {
     "enabled": true
@@ -43,6 +44,12 @@
       ],
       "groupName": "github actions",
       "pinDigests": true
+    },
+    {
+      "matchDepTypes": [
+        "dependencies"
+      ],
+      "semanticCommitType": "fix"
     },
     {
       "matchDepTypes": [
