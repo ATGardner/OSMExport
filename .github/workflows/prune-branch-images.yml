@@ -1,0 +1,78 @@
+name: Prune branch images
+
+# Branch images live exactly as long as their branch: when a branch is deleted,
+# drop the `<branch>` and `<branch>-<short-sha>` versions CI pushed for it.
+#
+# TEMPORARY TEST SHAPE: pointed at the old OSMExport/osmexport package and
+# manual-dispatch only, to find out whether GITHUB_TOKEN can delete versions of
+# a user-owned package. The `delete:` trigger is deliberately absent until that
+# is answered, so a real branch deletion cannot prune anything yet.
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch whose images should be pruned
+        required: true
+        type: string
+      dry-run:
+        description: Only list what would be deleted
+        required: false
+        default: true
+        type: boolean
+
+permissions: {}
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: atgardner
+      PACKAGE: OSMExport%2Fosmexport
+      BRANCH: ${{ inputs.branch }}
+      DRY_RUN: ${{ inputs.dry-run }}
+    steps:
+      - name: Delete image versions for the branch
+        run: |
+          set -euo pipefail
+
+          # Mirror docker/metadata-action's slugging: lowercase, and anything
+          # that isn't a legal tag character (notably `/`) becomes `-`.
+          slug=$(printf '%s' "$BRANCH" | tr '[:upper:]' '[:lower:]' | sed 's#[^a-z0-9._-]#-#g')
+          echo "Branch '$BRANCH' -> tag prefix '$slug' (dry-run: $DRY_RUN)"
+
+          versions=$(gh api --paginate \
+            "/users/$OWNER/packages/container/$PACKAGE/versions" \
+            --jq '.[] | {id, tags: (.metadata.container.tags // [])}' | jq -s '.')
+          echo "Read $(printf '%s' "$versions" | jq 'length') version(s) from the package."
+
+          # Match `<slug>` and `<slug>-<sha>`, but never touch a version that
+          # also carries a release tag — an unchanged build can produce the same
+          # digest as `latest`, and then both tags sit on one version.
+          targets=$(printf '%s' "$versions" | jq -c --arg slug "$slug" '
+            map(select(
+              (.tags | any(. == $slug or startswith($slug + "-")))
+              and ((.tags | any(. == "latest" or test("^v[0-9]"))) | not)
+            ))')
+
+          count=$(printf '%s' "$targets" | jq 'length')
+          echo "Matched $count version(s):"
+          printf '%s' "$targets" | jq -r '.[] | "  id=\(.id) tags=\(.tags | join(","))"'
+
+          if [ "$count" -eq 0 ]; then
+            echo "Nothing to do."
+            exit 0
+          fi
+
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run — no deletions performed."
+            exit 0
+          fi
+
+          printf '%s' "$targets" | jq -r '.[].id' | while read -r id; do
+            echo "Deleting version $id"
+            gh api --method DELETE \
+              "/users/$OWNER/packages/container/$PACKAGE/versions/$id"
+          done
