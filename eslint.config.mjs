@@ -1,18 +1,26 @@
 import globals from 'globals';
 import js from '@eslint/js';
 import prettierRecommended from 'eslint-plugin-prettier/recommended';
+import tseslint from 'typescript-eslint';
 
-export default [
+export default tseslint.config(
   js.configs.recommended,
-  // Adds the `prettier` plugin and disables stylistic rules that conflict with it.
+  ...tseslint.configs.recommendedTypeChecked,
   prettierRecommended,
   {
     languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
-      globals: {
-        ...globals.node,
+      parserOptions: {
+        /*
+         * The config files sit outside tsconfig's `include`, so the project
+         * service has no program for them. allowDefaultProject lints them
+         * against an inferred default project instead.
+         */
+        projectService: {
+          allowDefaultProject: ['eslint.config.mjs', 'prettier.config.cjs'],
+        },
+        tsconfigRootDir: import.meta.dirname,
       },
+      globals: {...globals.node},
     },
     rules: {
       // Fixable - errors
@@ -77,4 +85,4 @@ export default [
       'prefer-rest-params': 'warn',
     },
   },
-];
+);

@@ -1,0 +1,75 @@
+name: Release
+
+# Runs after CI succeeds on main, so the image for that commit already exists.
+# release-please accumulates conventional commits into a release PR; merging it
+# bumps the version, updates CHANGELOG.md, tags vX.Y.Z and creates the GitHub
+# release. The image job then re-tags the image CI already built for that exact
+# commit — no rebuild, so `latest` and `vX.Y.Z` are bit-for-bit what was tested.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  release-please:
+    name: Release PR or release
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+
+  image:
+    name: Tag release image
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    env:
+      IMAGE: ghcr.io/atgardner/osmexport
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Re-tag the image CI built for this commit
+        run: |
+          set -euo pipefail
+
+          # Must match ci.yml's `type=sha,format=short,prefix={{branch}}-`,
+          # which metadata-action renders as `main-<7 chars of sha>`.
+          source="$IMAGE:main-${HEAD_SHA:0:7}"
+          echo "Source: $source"
+
+          if ! docker buildx imagetools inspect "$source" >/dev/null 2>&1; then
+            echo "::error::$source not found — did CI's image job publish it?"
+            exit 1
+          fi
+
+          docker buildx imagetools create \
+            -t "$IMAGE:$TAG" \
+            -t "$IMAGE:latest" \
+            "$source"
+
+          docker buildx imagetools inspect "$IMAGE:$TAG" \
+            --format '{{println .Manifest.Digest}}'

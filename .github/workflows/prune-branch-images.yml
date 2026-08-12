@@ -1,13 +1,13 @@
 name: Prune branch images
 
-# Branch images live exactly as long as their branch: when a branch is deleted,
+# Branch images live exactly as long as their branch. When a branch is deleted,
 # drop the `<branch>` and `<branch>-<short-sha>` versions CI pushed for it.
 #
-# TEMPORARY TEST SHAPE: pointed at the old OSMExport/osmexport package and
-# manual-dispatch only, to find out whether GITHUB_TOKEN can delete versions of
-# a user-owned package. The `delete:` trigger is deliberately absent until that
-# is answered, so a real branch deletion cannot prune anything yet.
+# workflow_dispatch is here so this can be exercised without deleting a branch —
+# and because `delete` events only ever run the copy of this file on the default
+# branch, so it does nothing until it lands on main.
 on:
+  delete:
   workflow_dispatch:
     inputs:
       branch:
@@ -24,15 +24,16 @@ permissions: {}
 
 jobs:
   prune:
+    if: github.event_name == 'workflow_dispatch' || github.event.ref_type == 'branch'
     runs-on: ubuntu-latest
     permissions:
       packages: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       OWNER: atgardner
-      PACKAGE: OSMExport%2Fosmexport
-      BRANCH: ${{ inputs.branch }}
-      DRY_RUN: ${{ inputs.dry-run }}
+      PACKAGE: osmexport
+      BRANCH: ${{ inputs.branch || github.event.ref }}
+      DRY_RUN: ${{ inputs.dry-run || 'false' }}
     steps:
       - name: Delete image versions for the branch
         run: |
@@ -46,7 +47,6 @@ jobs:
           versions=$(gh api --paginate \
             "/users/$OWNER/packages/container/$PACKAGE/versions" \
             --jq '.[] | {id, tags: (.metadata.container.tags // [])}' | jq -s '.')
-          echo "Read $(printf '%s' "$versions" | jq 'length') version(s) from the package."
 
           # Match `<slug>` and `<slug>-<sha>`, but never touch a version that
           # also carries a release tag — an unchanged build can produce the same

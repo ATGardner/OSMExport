@@ -6,54 +6,20 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "npm - start",
-      "request": "launch",
-      "runtimeArgs": [
-        "run-script",
-        "start",
-      ],
-      "runtimeExecutable": "npm",
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
-      "type": "node"
-    },
-    {
-      "name": "npm - cmd",
-      "request": "launch",
-      "runtimeArgs": [
-        "run-script",
-        "cmd",
-        "--",
-        "getRelation",
-        // "282071", // int
-        "13137517", // old int
-        "-s",
-        "0",
-        "-m",
-        "1000",
-        // "--reverse",
-      ],
-      "runtimeExecutable": "npm",
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
-      "type": "node",
-      "runtimeVersion": "20.5.1"
-    },
-    {
       "type": "node",
       "request": "launch",
       "name": "Launch Server",
+      "outputCapture": "std",
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}/index.mjs"
+      "program": "${workspaceFolder}/index.ts"
     },
     {
       "type": "node",
       "request": "launch",
       "name": "Launch CommandLine",
+      "outputCapture": "std",
       "args": [
         "getRelation",
         "282071",
@@ -67,8 +33,7 @@
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}/commandLine.mjs",
-      // "console": "internalConsole",
+      "program": "${workspaceFolder}/commandLine.ts",
     }
   ]
 }
