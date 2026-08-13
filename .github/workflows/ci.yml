@@ -54,6 +54,19 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
+      # arm64 is built under emulation rather than on an arm runner. The only
+      # thing the Dockerfile compiles is nothing: no dependency in the lockfile
+      # has an install script, and `npm ci --production` unpacks ten pure-JS
+      # packages. Emulating that costs a minute, against a second job, digest
+      # artifacts and a merge step to avoid it.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+
+      # The default docker driver builds one platform at a time. buildx's
+      # container driver is what makes `platforms:` below build both at once.
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
         with:
@@ -74,13 +87,22 @@ jobs:
             type=ref,event=branch
             type=sha,format=short,prefix={{branch}}-
 
+      # Both tags now point at a manifest list rather than a single image, so
+      # `docker pull` resolves per host arch. release.yml needs no change:
+      # `buildx imagetools create` copies the whole index, so the release tag
+      # inherits both platforms.
       - name: Build and push
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # The `npm ci` layer only changes when package-lock.json does, which
+          # is what makes the emulated leg cheap on most pushes.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   # Nothing used to look at the chart before publishing it — a template that
   # rendered garbage still got packaged and pushed, and you found out at
