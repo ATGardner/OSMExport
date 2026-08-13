@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.1](https://github.com/ATGardner/OSMExport/compare/v2.1.0...v2.1.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **ci:** only run CI on branch pushes, not tags ([#526](https://github.com/ATGardner/OSMExport/issues/526)) ([9b12214](https://github.com/ATGardner/OSMExport/commit/9b122142d8b52d884174434da044bad4b47c1696))
+* **ci:** wait before pruning a deleted branch's images ([#528](https://github.com/ATGardner/OSMExport/issues/528)) ([5c81885](https://github.com/ATGardner/OSMExport/commit/5c81885312f58ec12818d6d307f10374ca9f51c1))
+
 ## [2.1.0](https://github.com/ATGardner/OSMExport/compare/v2.0.1...v2.1.0) (2026-08-13)
 
 
