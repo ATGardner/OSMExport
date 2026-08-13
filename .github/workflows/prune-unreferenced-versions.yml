@@ -1,0 +1,139 @@
+name: Prune unreferenced versions
+
+# The other two prune workflows delete versions by tag. That is the only thing
+# they can match on, and it leaves garbage behind in two ways:
+#
+#   - A multi-platform image is an index plus one untagged manifest per
+#     platform, plus one untagged attestation manifest per platform. Deleting
+#     the tagged index does not touch the four children, and while they survive
+#     they keep the layer blobs alive, so the prune reclaims nothing.
+#   - Any moving tag orphans a digest every time it moves. `<base>-main` is
+#     re-pushed on every commit to main, and the chart version it pointed at
+#     before becomes untagged and unreachable on the spot.
+#
+# So this is a mark-and-sweep pass rather than a tag matcher. Every tagged
+# version is a root; walk each root's manifest and collect the digests it
+# references; delete untagged versions that nothing reachable points at.
+#
+# Deliberately not folded into the other two workflows. Reachability is a
+# property of the whole package, not of the branch or the age bracket being
+# pruned — a platform manifest can be shared by two indexes, so "delete the
+# children of the version I just deleted" is not safe. Running the sweep
+# separately means it cleans up after both of them and after anything else that
+# ever orphans a digest.
+on:
+  schedule:
+    # An hour after prune-main-images.yml, so it sweeps what that run orphaned.
+    - cron: '0 5 * * 0'
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Only list what would be deleted
+        required: false
+        default: true
+        type: boolean
+      grace-hours:
+        description: Never delete an untagged version newer than this
+        required: false
+        default: '24'
+        type: string
+
+permissions: {}
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: atgardner
+      GRACE_HOURS: ${{ inputs.grace-hours || '24' }}
+      DRY_RUN: ${{ inputs.dry-run || 'false' }}
+    steps:
+      - name: Delete unreferenced versions
+        run: |
+          set -euo pipefail
+
+          # buildx pushes the child manifests before the index that references
+          # them, so for a moment mid-push a child is legitimately unreachable.
+          # Deleting one there breaks the push. Nothing in the registry marks a
+          # push as in flight, so the only defence is to ignore anything recent
+          # — the same reasoning behind the sleep in prune-branch-images.yml,
+          # with a much wider margin because this run is never urgent.
+          cutoff=$(date -u -d "$GRACE_HOURS hours ago" +%Y-%m-%dT%H:%M:%SZ)
+          echo "Grace cut-off: $cutoff (dry-run: $DRY_RUN)"
+
+          sweep() {
+            local api_pkg="$1" repo="$2" label="$3"
+            echo "--- $label ($repo)"
+
+            local versions token roots reachable targets count
+            versions=$(gh api --paginate \
+              "/users/$OWNER/packages/container/$api_pkg/versions" \
+              --jq '.[] | {id, digest: .name, tags: (.metadata.container.tags // []), updated_at}' \
+              | jq -s '.')
+            echo "    read $(printf '%s' "$versions" | jq 'length') version(s)"
+
+            # The packages API knows nothing about manifest contents, so the
+            # walk has to read them from the registry itself. A pull-scoped
+            # token off the same GITHUB_TOKEN is enough.
+            token=$(curl -fsSL -u "$OWNER:$GH_TOKEN" \
+              "https://ghcr.io/token?service=ghcr.io&scope=repository:$repo:pull" \
+              | jq -r '.token')
+
+            roots=$(printf '%s' "$versions" | jq -r '.[] | select(.tags | length > 0) | .digest')
+
+            # Any failure below aborts the run, on purpose. A root whose
+            # manifest cannot be read looks childless, which would make its
+            # children look garbage and delete a live image. Reading nothing is
+            # always safer than reading half.
+            reachable=$(mktemp)
+            local digest children
+            while IFS= read -r digest; do
+              [ -n "$digest" ] || continue
+              printf '%s\n' "$digest" >> "$reachable"
+              children=$(curl -fsSL -H "Authorization: Bearer $token" \
+                -H 'Accept: application/vnd.oci.image.index.v1+json' \
+                -H 'Accept: application/vnd.docker.distribution.manifest.list.v2+json' \
+                -H 'Accept: application/vnd.oci.image.manifest.v1+json' \
+                -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' \
+                "https://ghcr.io/v2/$repo/manifests/$digest" \
+                | jq -r '(.manifests // [])[].digest')
+              [ -z "$children" ] || printf '%s\n' "$children" >> "$reachable"
+            done <<< "$roots"
+            sort -u -o "$reachable" "$reachable"
+            echo "    $(printf '%s' "$roots" | grep -c . || true) root(s) reach $(grep -c . "$reachable" || true) digest(s)"
+
+            targets=$(printf '%s' "$versions" | jq -c \
+              --arg cutoff "$cutoff" --rawfile reach "$reachable" '
+              ($reach | split("\n") | map(select(length > 0))) as $keep
+              | map(select(
+                  (.tags | length) == 0
+                  and ((.digest | IN($keep[])) | not)
+                  and (.updated_at < $cutoff)
+                ))')
+            rm -f "$reachable"
+
+            count=$(printf '%s' "$targets" | jq 'length')
+            echo "    unreferenced and past grace: $count"
+            printf '%s' "$targets" | jq -r '.[] | "      id=\(.id) \(.updated_at) \(.digest)"'
+
+            if [ "$count" -eq 0 ] || [ "$DRY_RUN" = "true" ]; then
+              return 0
+            fi
+
+            local id
+            for id in $(printf '%s' "$targets" | jq -r '.[].id'); do
+              echo "    deleting $id"
+              gh api --method DELETE \
+                "/users/$OWNER/packages/container/$api_pkg/versions/$id"
+            done
+          }
+
+          sweep "osmexport" "$OWNER/osmexport" "images"
+          sweep "charts%2Fosmexport" "$OWNER/charts/osmexport" "charts"
+
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run — no deletions performed."
+          fi
