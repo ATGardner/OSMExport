@@ -1,0 +1,114 @@
+---
+# The default rule is generated, not copied from values, so nothing in the
+# values file will tell you when it stops pointing at this release's Service.
+# A route whose backendRef names the wrong Service or port is schema-valid,
+# installs fine, and 404s.
+suite: httproute
+templates:
+  - httproute.yaml
+release:
+  name: test-release
+tests:
+  - it: renders nothing when disabled
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: defaults to one rule pointing at this release's Service
+    set:
+      httpRoute.enabled: true
+      httpRoute.parentRefs:
+        - name: my-gateway
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: HTTPRoute
+      - equal:
+          path: apiVersion
+          value: gateway.networking.k8s.io/v1
+      - equal:
+          path: spec.rules[0].backendRefs[0].name
+          value: test-release-osmexport
+      - equal:
+          path: spec.rules[0].matches[0].path
+          value:
+            type: PathPrefix
+            value: /
+
+  # The Service and the route read the same value, so a port change has to move
+  # both. Asserting the literal here means a one-sided edit fails.
+  - it: tracks service.port on the backendRef
+    set:
+      httpRoute.enabled: true
+      httpRoute.parentRefs:
+        - name: my-gateway
+      service.port: 8080
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 8080
+
+  - it: passes parentRefs and hostnames through untouched
+    set:
+      httpRoute.enabled: true
+      httpRoute.parentRefs:
+        - name: my-gateway
+          namespace: gateway-system
+          sectionName: https
+      httpRoute.hostnames:
+        - osmexport.example.com
+        - www.osmexport.example.com
+      httpRoute.annotations:
+        external-dns.alpha.kubernetes.io/hostname: osmexport.example.com
+    asserts:
+      - equal:
+          path: spec.parentRefs[0]
+          value:
+            name: my-gateway
+            namespace: gateway-system
+            sectionName: https
+      - equal:
+          path: spec.hostnames
+          value:
+            - osmexport.example.com
+            - www.osmexport.example.com
+      - equal:
+          path: metadata.annotations["external-dns.alpha.kubernetes.io/hostname"]
+          value: osmexport.example.com
+
+  - it: omits hostnames entirely rather than emitting an empty list
+    set:
+      httpRoute.enabled: true
+      httpRoute.parentRefs:
+        - name: my-gateway
+    asserts:
+      - notExists:
+          path: spec.hostnames
+
+  # Documented behaviour: setting rules means you own routing, backendRefs
+  # included. If the default rule leaked through alongside a custom one the
+  # route would quietly serve two backends.
+  - it: replaces the default rule entirely when rules is set
+    set:
+      httpRoute.enabled: true
+      httpRoute.parentRefs:
+        - name: my-gateway
+      httpRoute.rules:
+        - matches:
+            - path:
+                type: Exact
+                value: /healthz
+          backendRefs:
+            - name: somewhere-else
+              port: 9000
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 1
+      - equal:
+          path: spec.rules[0].backendRefs[0].name
+          value: somewhere-else
+      - equal:
+          path: spec.rules[0].matches[0].path.type
+          value: Exact
