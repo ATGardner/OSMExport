@@ -103,24 +103,43 @@ jobs:
 
       - run: helm lint charts/osmexport --strict
 
-      - name: Render non-default values
+      - name: Install kubeconform
+        env:
+          VERSION: v0.8.0
+          SHA256: 9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -fsSL -o "$RUNNER_TEMP/kubeconform.tar.gz" \
+            "https://github.com/yannh/kubeconform/releases/download/$VERSION/kubeconform-linux-amd64.tar.gz"
+          echo "$SHA256  $RUNNER_TEMP/kubeconform.tar.gz" | sha256sum -c -
+          tar xz -C "$RUNNER_TEMP/bin" -f "$RUNNER_TEMP/kubeconform.tar.gz" kubeconform
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      # `helm template` on its own proves almost nothing. A `{{- with }}` block
+      # at the wrong nindent still emits parseable YAML and helm exits 0; it
+      # just hangs the value off the wrong node. kubeconform checks the whole
+      # rendered manifest against the real Kubernetes schemas, so `-strict`
+      # rejects that as an unknown property. It is the only layer here that
+      # catches a misplaced field nobody thought to write an assertion for.
+      - name: Validate rendered manifests
         run: |
           set -euo pipefail
 
-          # `helm lint` only ever renders values.yaml as written. Each of these
-          # takes a different branch through the templates, so a `{{- with }}`
-          # or an indentation slip that only shows up once a value is set fails
-          # here instead of at install time.
-          helm template ci charts/osmexport --set 'fullnameOverride=custom'
-          helm template ci charts/osmexport --set 'nameOverride=renamed'
-          helm template ci charts/osmexport --set 'imagePullSecrets[0].name=ghcr-pull-secret'
-          helm template ci charts/osmexport --set 'image.tag=main-abc1234' --set 'containerPort=8080'
-          helm template ci charts/osmexport --set 'resources.limits.cpu=100m' --set 'nodeSelector.disktype=ssd'
-          helm template ci charts/osmexport --set 'podAnnotations.team=maps' --set 'podLabels.tier=web'
+          validate() {
+            helm template ci charts/osmexport "$@" \
+              | kubeconform -strict -summary -kubernetes-version 1.34.0 -
+          }
 
-      # Renders assert nothing about *what* came out. These do: the appVersion
-      # fallback, the fullname collapse, and the Service selector matching the
-      # pod labels all render valid YAML when broken.
+          # values.yaml leaves most optional blocks empty, so the default
+          # render never reaches them. ci/all-values.yaml sets all of them.
+          validate
+          validate --values charts/osmexport/ci/all-values.yaml
+
+      # Schemas only say a field is allowed where it landed, never that it
+      # landed where it was meant to. These assert the values themselves: the
+      # appVersion fallback, the fullname collapse, podLabels merging into the
+      # selector labels. All three render schema-valid YAML when broken.
       - name: Unit test the chart
         run: |
           set -euo pipefail

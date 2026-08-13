@@ -1,6 +1,7 @@
-# helm-unittest suites. Not `templates/tests/`, so helm has no opinion about
-# them and would otherwise ship them to every consumer of the chart.
+# CI-only. Neither is a directory helm has an opinion about — `tests/` is not
+# `templates/tests/` — so both would otherwise ship to every chart consumer.
 tests/
+ci/
 
 .DS_Store
 .git/

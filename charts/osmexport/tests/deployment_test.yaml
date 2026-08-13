@@ -69,6 +69,69 @@ tests:
       - notExists:
           path: spec.template.metadata.annotations
 
+  # Every one of these is a `{{- with }}` block whose body is indented by hand.
+  # Getting the nindent wrong does not break the YAML, it silently moves the
+  # value to a different node — `nodeSelector` at nindent 4 renders a null
+  # nodeSelector and drops the map a level up, and helm exits 0. So assert the
+  # path, not just that something rendered.
+  - it: places optional blocks on the right node when set
+    set:
+      replicaCount: 3
+      nodeSelector:
+        disktype: ssd
+      tolerations:
+        - key: spot
+          operator: Exists
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms: []
+      resources:
+        limits:
+          cpu: 100m
+      podAnnotations:
+        team: maps
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+      - equal:
+          path: spec.template.spec.nodeSelector
+          value:
+            disktype: ssd
+      - equal:
+          path: spec.template.spec.tolerations[0].key
+          value: spot
+      - exists:
+          path: spec.template.spec.affinity.nodeAffinity
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.cpu
+          value: 100m
+      - equal:
+          path: spec.template.metadata.annotations
+          value:
+            team: maps
+
+  # podLabels must merge into the selector labels, not replace them. Replacing
+  # them gives the Deployment a selector that does not match the pods it
+  # creates, which installs cleanly and then never becomes ready.
+  - it: merges podLabels into the selector labels rather than replacing them
+    set:
+      podLabels:
+        tier: web
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels
+          value:
+            app.kubernetes.io/name: osmexport
+            app.kubernetes.io/instance: test-release
+            tier: web
+      - equal:
+          path: spec.selector.matchLabels
+          value:
+            app.kubernetes.io/name: osmexport
+            app.kubernetes.io/instance: test-release
+
   - it: probes the named port so it tracks containerPort
     asserts:
       - equal:
