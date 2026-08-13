@@ -123,12 +123,20 @@ jobs:
       # rejects that as an unknown property. It is the only layer here that
       # catches a misplaced field nobody thought to write an assertion for.
       - name: Validate rendered manifests
+        env:
+          CRD_SCHEMAS: https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
         run: |
           set -euo pipefail
 
+          # kubeconform treats a kind it has no schema for as an error, not a
+          # skip, so anything CRD-backed the chart grows later — an HTTPRoute,
+          # say — needs a source beyond the built-in Kubernetes schemas. The
+          # `default` location has to be repeated once another is named.
           validate() {
             helm template ci charts/osmexport "$@" \
-              | kubeconform -strict -summary -kubernetes-version 1.34.0 -
+              | kubeconform -strict -summary -kubernetes-version 1.34.0 \
+                  -schema-location default \
+                  -schema-location "$CRD_SCHEMAS" -
           }
 
           # values.yaml leaves most optional blocks empty, so the default
