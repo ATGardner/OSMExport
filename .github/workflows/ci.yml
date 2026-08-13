@@ -82,9 +82,55 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+  # Nothing used to look at the chart before publishing it — a template that
+  # rendered garbage still got packaged and pushed, and you found out at
+  # `helm install`. Runs alongside `verify` rather than after it: the chart
+  # does not depend on the TypeScript building.
+  chart-verify:
+    name: Lint and test chart
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # The publish jobs use whatever helm the runner image ships. This one
+      # pins it: a suite whose result changes when that image rolls is not a
+      # suite, and `helm plugin install` flags differ across helm majors.
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.2.3
+
+      - run: helm lint charts/osmexport --strict
+
+      - name: Render non-default values
+        run: |
+          set -euo pipefail
+
+          # `helm lint` only ever renders values.yaml as written. Each of these
+          # takes a different branch through the templates, so a `{{- with }}`
+          # or an indentation slip that only shows up once a value is set fails
+          # here instead of at install time.
+          helm template ci charts/osmexport --set 'fullnameOverride=custom'
+          helm template ci charts/osmexport --set 'nameOverride=renamed'
+          helm template ci charts/osmexport --set 'imagePullSecrets[0].name=ghcr-pull-secret'
+          helm template ci charts/osmexport --set 'image.tag=main-abc1234' --set 'containerPort=8080'
+          helm template ci charts/osmexport --set 'resources.limits.cpu=100m' --set 'nodeSelector.disktype=ssd'
+          helm template ci charts/osmexport --set 'podAnnotations.team=maps' --set 'podLabels.tier=web'
+
+      # Renders assert nothing about *what* came out. These do: the appVersion
+      # fallback, the fullname collapse, and the Service selector matching the
+      # pod labels all render valid YAML when broken.
+      - name: Unit test the chart
+        run: |
+          set -euo pipefail
+          helm plugin install https://github.com/helm-unittest/helm-unittest \
+            --version v1.1.2 --verify=false
+          helm unittest charts/osmexport
+
   chart:
     name: Package and push chart
-    needs: image
+    needs: [image, chart-verify]
     if: ${{ !startsWith(github.ref_name, 'release-please--') }}
     runs-on: ubuntu-latest
     permissions:

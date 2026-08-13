@@ -1,3 +1,7 @@
+# helm-unittest suites. Not `templates/tests/`, so helm has no opinion about
+# them and would otherwise ship them to every consumer of the chart.
+tests/
+
 .DS_Store
 .git/
 .gitignore

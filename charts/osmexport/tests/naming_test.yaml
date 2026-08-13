@@ -1,0 +1,46 @@
+---
+# osmexport.fullname has a branch that surprises people: when the release name
+# already contains the chart name it collapses instead of doubling up, so
+# `helm install osmexport` yields `osmexport`, not `osmexport-osmexport`.
+suite: naming
+templates:
+  - service.yaml
+tests:
+  - it: prefixes the chart name with the release name
+    release:
+      name: test-release
+    asserts:
+      - equal:
+          path: metadata.name
+          value: test-release-osmexport
+
+  - it: collapses when the release name already contains the chart name
+    release:
+      name: osmexport-prod
+    asserts:
+      - equal:
+          path: metadata.name
+          value: osmexport-prod
+
+  - it: honours fullnameOverride
+    release:
+      name: test-release
+    set:
+      fullnameOverride: custom-name
+    asserts:
+      - equal:
+          path: metadata.name
+          value: custom-name
+
+  - it: honours nameOverride
+    release:
+      name: test-release
+    set:
+      nameOverride: renamed
+    asserts:
+      - equal:
+          path: metadata.name
+          value: test-release-renamed
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: renamed

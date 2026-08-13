@@ -1,0 +1,31 @@
+---
+# A Service whose selector drifts from the Deployment's pod labels still lints,
+# still installs, and has zero endpoints. Both sides are asserted here against
+# the same literal so a one-sided edit to the helpers fails.
+suite: service
+templates:
+  - service.yaml
+release:
+  name: test-release
+tests:
+  - it: exposes service.port and targets the named container port
+    set:
+      service.port: 8080
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+      - equal:
+          path: spec.ports[0].port
+          value: 8080
+      - equal:
+          path: spec.ports[0].targetPort
+          value: http
+
+  - it: selects exactly the labels the deployment puts on its pods
+    asserts:
+      - equal:
+          path: spec.selector
+          value:
+            app.kubernetes.io/name: osmexport
+            app.kubernetes.io/instance: test-release

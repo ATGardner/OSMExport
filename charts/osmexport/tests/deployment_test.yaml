@@ -1,0 +1,79 @@
+---
+# The image reference and the `{{- with }}` guards are the parts of this chart
+# that fail silently: a broken fallback still renders valid YAML, and a value
+# that lands in the wrong place still passes `helm lint`.
+suite: deployment
+templates:
+  - deployment.yaml
+release:
+  name: test-release
+tests:
+  - it: defaults the image tag to the chart appVersion
+    chart:
+      appVersion: 2.1.1
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/atgardner/osmexport:2.1.1
+
+  - it: prefers an explicit image tag over the appVersion
+    chart:
+      appVersion: 2.1.1
+    set:
+      image.tag: main-abc1234
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/atgardner/osmexport:main-abc1234
+
+  - it: omits imagePullSecrets by default
+    asserts:
+      - notExists:
+          path: spec.template.spec.imagePullSecrets
+
+  - it: renders imagePullSecrets when set
+    set:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: ghcr-pull-secret
+
+  - it: drives both the PORT env var and the container port from containerPort
+    set:
+      containerPort: 8080
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[0]
+          value:
+            name: PORT
+            value: "8080"
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 8080
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].name
+          value: http
+
+  - it: omits empty optional blocks rather than emitting nulls
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].resources
+      - notExists:
+          path: spec.template.spec.nodeSelector
+      - notExists:
+          path: spec.template.spec.affinity
+      - notExists:
+          path: spec.template.spec.tolerations
+      - notExists:
+          path: spec.template.metadata.annotations
+
+  - it: probes the named port so it tracks containerPort
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.tcpSocket.port
+          value: http
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.tcpSocket.port
+          value: http
