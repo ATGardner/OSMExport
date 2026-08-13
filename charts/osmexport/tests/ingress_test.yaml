@@ -1,0 +1,112 @@
+---
+# The rules block is a hand-indented nested range with a branch for hostless
+# rules. Both the backend wiring and that branch produce schema-valid YAML when
+# they go wrong, so assert the shape rather than that something rendered.
+suite: ingress
+templates:
+  - ingress.yaml
+release:
+  name: test-release
+tests:
+  - it: renders nothing when disabled
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: backs every path with this release's Service on service.port
+    set:
+      ingress.enabled: true
+      service.port: 8080
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - equal:
+          path: spec.rules[0].host
+          value: osmexport.example.com
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service
+          value:
+            name: test-release-osmexport
+            port:
+              number: 8080
+
+  - it: defaults pathType to Prefix and honours an explicit one
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - host: a.example.com
+          paths:
+            - path: /
+        - host: b.example.com
+          paths:
+            - path: /exact
+              pathType: Exact
+            - path: /api
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 2
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: Prefix
+      - equal:
+          path: spec.rules[1].http.paths[0].pathType
+          value: Exact
+      - equal:
+          path: spec.rules[1].http.paths[1].pathType
+          value: Prefix
+      - equal:
+          path: spec.rules[1].http.paths[1].path
+          value: /api
+
+  # A rule with no host is the catch-all, e.g. reaching the cluster by IP. It
+  # takes the other side of the branch in the template, where a stray `host:`
+  # key would turn the catch-all into a rule matching the hostname "null".
+  - it: emits a hostless catch-all rule without a null host key
+    set:
+      ingress.enabled: true
+      ingress.hosts:
+        - paths:
+            - path: /
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 1
+      - notExists:
+          path: spec.rules[0].host
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.name
+          value: test-release-osmexport
+
+  - it: passes className, annotations and tls through
+    set:
+      ingress.enabled: true
+      ingress.className: nginx
+      ingress.annotations:
+        cert-manager.io/cluster-issuer: letsencrypt
+      ingress.tls:
+        - secretName: osmexport-tls
+          hosts:
+            - osmexport.example.com
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+      - equal:
+          path: metadata.annotations["cert-manager.io/cluster-issuer"]
+          value: letsencrypt
+      - equal:
+          path: spec.tls[0]
+          value:
+            secretName: osmexport-tls
+            hosts:
+              - osmexport.example.com
+
+  - it: omits ingressClassName when unset rather than emitting an empty string
+    set:
+      ingress.enabled: true
+    asserts:
+      - notExists:
+          path: spec.ingressClassName

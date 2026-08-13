@@ -1,3 +1,8 @@
+# CI-only. Neither is a directory helm has an opinion about — `tests/` is not
+# `templates/tests/` — so both would otherwise ship to every chart consumer.
+tests/
+ci/
+
 .DS_Store
 .git/
 .gitignore
