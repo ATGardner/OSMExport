@@ -112,10 +112,17 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Helm accepts a leading `v`, so the chart version mirrors the image
-          # tag exactly, and --app-version points it at that same image.
+          # A chart version is SemVer, which has no leading `v` — Helm only
+          # tolerates one. It also becomes the OCI tag verbatim, and Helm
+          # resolves an exact `--version` straight to a tag, so publishing
+          # `v2.1.1` makes `--version 2.1.1` a 404. Strip it. This also matches
+          # ci.yml, whose branch charts are already bare `<base>-<slug>-<sha>`.
+          #
+          # --app-version keeps the `v`: it is not a version to be parsed, it
+          # is the image tag values.yaml falls back to, and must match exactly.
           #
           # No `latest` chart: it is not valid SemVer, and CI already publishes
           # `<base>-main` off the tip of main for pre-release deployments.
-          helm package charts/osmexport --version "$TAG" --app-version "$TAG"
-          helm push "osmexport-$TAG.tgz" "$CHARTS"
+          version="${TAG#v}"
+          helm package charts/osmexport --version "$version" --app-version "$TAG"
+          helm push "osmexport-$version.tgz" "$CHARTS"
