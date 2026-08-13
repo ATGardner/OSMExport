@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.2.0](https://github.com/ATGardner/OSMExport/compare/v2.1.1...v2.2.0) (2026-08-13)
+
+
+### Features
+
+* **chart:** add HTTPRoute and Ingress templates ([#531](https://github.com/ATGardner/OSMExport/issues/531)) ([b6c62bc](https://github.com/ATGardner/OSMExport/commit/b6c62bc85c7b1f982d8e913bc25a227770c818fe))
+* **ci:** build the image for amd64 and arm64 ([#534](https://github.com/ATGardner/OSMExport/issues/534)) ([77d00ee](https://github.com/ATGardner/OSMExport/commit/77d00ee12a5f7b5aaeb553a4616b2ae8d55a6748))
+
+
+### Bug Fixes
+
+* **ci:** publish release charts without the `v` prefix ([#529](https://github.com/ATGardner/OSMExport/issues/529)) ([e6d08bb](https://github.com/ATGardner/OSMExport/commit/e6d08bbe4be2abd6584a5a4c811b2dc52db9d3b9))
+* **ci:** sweep unreferenced package versions by reachability ([#535](https://github.com/ATGardner/OSMExport/issues/535)) ([f4dd787](https://github.com/ATGardner/OSMExport/commit/f4dd787f21a697022d2b84579cbc60946fb27ba0))
+
 ## [2.1.1](https://github.com/ATGardner/OSMExport/compare/v2.1.0...v2.1.1) (2026-08-13)
 
 
