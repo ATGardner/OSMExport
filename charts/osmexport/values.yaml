@@ -8,7 +8,10 @@ image:
   # matches this chart version. Override only to pin a different image.
   tag: ""
 
+# Secrets in the release namespace holding registry credentials. The GHCR
+# packages are public, so this is only needed if you have made them private.
 imagePullSecrets: []
+#  - name: ghcr-pull-secret
 nameOverride: ""
 fullnameOverride: ""
 
@@ -18,6 +21,40 @@ podLabels: {}
 service:
   type: ClusterIP
   port: 3000
+
+# Gateway API routing. Prefer this over `ingress` on clusters that have the
+# Gateway API CRDs installed; enabling both is allowed but rarely wanted.
+httpRoute:
+  enabled: false
+  annotations: {}
+  # Gateways to attach to. Required when enabled — a route with no parent is
+  # accepted by the API server and then silently routes nothing.
+  parentRefs: []
+  #  - name: my-gateway
+  #    namespace: gateway-system
+  #    sectionName: https
+  # Omit to serve on every hostname the parent listener accepts.
+  hostnames: []
+  #  - osmexport.example.com
+  # Defaults to one rule sending every path to this chart's Service. Set this
+  # to take over routing entirely — matches, filters, timeouts — in which case
+  # you own the backendRefs too.
+  rules: []
+
+# Traditional Ingress, for clusters without the Gateway API.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: osmexport.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: osmexport-tls
+  #    hosts:
+  #      - osmexport.example.com
 
 # The app serves on 3000 and reads PORT from the environment.
 containerPort: 3000
