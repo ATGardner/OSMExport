@@ -38,6 +38,23 @@ jobs:
       BRANCH: ${{ inputs.branch || github.event.ref }}
       DRY_RUN: ${{ inputs.dry-run || 'false' }}
     steps:
+      # Merging a PR deletes its branch and pushes to main at the same instant,
+      # so this fires while CI's image push for the merge commit is still in
+      # flight. Both write the same package, and GHCR dedupes layer blobs across
+      # versions: the branch image and the main image are built from the same
+      # tree, so they are the same blobs. Deleting this branch's version drops
+      # the last referrer to layers the in-flight push already decided to skip
+      # uploading, GHCR garbage-collects them, and the manifest then lands on
+      # blobs that are gone — `ERROR: failed to build: unknown blob`.
+      #
+      # Nothing in the registry records that an unfinished push still needs
+      # those blobs, so the only fix is to not overlap. CI on main finishes in
+      # about a minute; three leaves comfortable margin. A manual run is
+      # deliberate and races with nothing, so it skips the wait.
+      - name: Let the merge commit's CI finish pushing
+        if: github.event_name == 'delete'
+        run: sleep 180
+
       - name: Delete versions for the branch
         run: |
           set -euo pipefail
