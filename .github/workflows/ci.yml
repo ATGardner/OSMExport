@@ -2,8 +2,16 @@ name: CI
 
 # Every push to every branch, main included — `main` and `main-<short-sha>` give
 # you something deployable from the tip of main before a release is cut.
+#
+# Branches only. A bare `push` also matches tags, and release-please's `vX.Y.Z`
+# tag would start a run whose metadata is nonsense: `type=ref,event=branch`
+# emits nothing on a tag ref and `prefix={{branch}}-` renders empty, so the
+# image job asks for the invalid tag `:-<sha>` and buildx rejects it. There is
+# nothing to build there anyway — release.yml re-tags the image this workflow
+# already produced for that commit rather than rebuilding it.
 on:
   push:
+    branches: ['**']
 
 concurrency:
   group: ci-${{ github.ref }}
