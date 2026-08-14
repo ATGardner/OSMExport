@@ -47,7 +47,6 @@
     "moment": "^2.30.1",
     "osmtogeojson": "^3.0.0-beta.5",
     "slug": "^12.0.0",
-    "universal-analytics": "^0.5.4",
     "winston": "^3.19.0",
     "yargs": "^18.0.0"
   },

@@ -1,8 +1,6 @@
 import {type RelationRequest, getRelation} from './osm2gpx.ts';
 import express, {type RequestHandler} from 'express';
-import ua, {type Visitor} from 'universal-analytics';
 import {getLogger} from './logger.ts';
-import moment from 'moment';
 import slug from 'slug';
 
 const app = express();
@@ -10,58 +8,18 @@ const app = express();
 const logger = getLogger('app');
 
 slug.defaults.mode = 'rfc3986';
-if (app.get('env') === 'production') {
-  app.use(ua.middleware('UA-18054605-12', {cookieName: '_ga'}));
-}
-
-function sendEvent(
-  visitor: Visitor | undefined,
-  action: string,
-  label: string,
-) {
-  logger.info(`${action} - ${label}`);
-  if (visitor) {
-    visitor
-      .event({
-        ec: 'OSM2GPXv4',
-        ea: action,
-        el: label,
-        aip: true,
-      })
-      .send();
-  }
-}
-
-function sendTiming(
-  visitor: Visitor | undefined,
-  variable: string,
-  time: number,
-) {
-  logger.info(`${variable} - ${time}ms`);
-  if (visitor) {
-    visitor
-      .timing({
-        utc: 'OSM2GPXv4',
-        utv: variable,
-        utt: time,
-        aip: true,
-      })
-      .send();
-  }
-}
 
 const handler: RequestHandler<
   Record<string, never>,
   string,
   never,
   RelationRequest
-> = async ({query, query: {relationId}, visitor}, res) => {
-  const start = moment();
-  sendEvent(visitor, 'Creating gpx', String(relationId));
+> = async ({query, query: {relationId}}, res) => {
+  logger.info(`creating gpx - ${relationId}`);
+  logger.profile(relationId);
   try {
     const {fileName, gpx} = await getRelation(query);
-    const end = moment().diff(start);
-    sendTiming(visitor, 'getRelationTime', end);
+    logger.profile(relationId);
     const safeFileName = encodeURI(
       slug(fileName, {
         replacement: ' ',
@@ -78,10 +36,8 @@ const handler: RequestHandler<
     });
     res.send(gpx);
   } catch (error) {
-    const end = moment().diff(start);
-    sendTiming(visitor, 'failureTime', end);
-    sendEvent(visitor, 'Error', `${relationId} - ${String(error)}`);
-    logger.error('Error Occured', error);
+    logger.error(`failed creating gpx - ${relationId}`, error);
+    logger.profile(relationId);
     res.set('Content-Type', 'text/plain').status(500).send('An error occured');
   }
 };
