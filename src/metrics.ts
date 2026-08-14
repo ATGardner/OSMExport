@@ -9,7 +9,7 @@ const logger = getLogger('metrics');
  * module from the CLI entrypoint cannot collide with anything else and tests
  * can build their own. `collectDefaultMetrics` adds the process and Node
  * runtime series — event loop lag, GC pauses, heap and handle counts — which
- * are the only signals that distinguish "Overpass is slow" from "we are".
+ * are the only signals that distinguish "the OSM API is slow" from "we are".
  */
 export const registry = new Registry();
 
@@ -17,9 +17,9 @@ collectDefaultMetrics({register: registry});
 
 /*
  * Every duration bucket set below is in seconds and skewed long on purpose.
- * A request here is dominated by one or two Overpass round trips, so the
- * library defaults (which top out at 10s) would pile most real traffic into
- * +Inf and make the histogram unable to answer anything.
+ * A request here is dominated by one OSM API round trip, so the library
+ * defaults (which top out at 10s) would pile most real traffic into +Inf and
+ * make the histogram unable to answer anything.
  */
 const httpRequestDuration = new Histogram({
   name: 'osmexport_http_request_duration_seconds',
@@ -29,11 +29,12 @@ const httpRequestDuration = new Histogram({
   registers: [registry],
 });
 
-const overpassRequestDuration = new Histogram({
-  name: 'osmexport_overpass_request_duration_seconds',
-  help: 'Duration of outbound Overpass API queries, by query kind and outcome',
+const osmApiRequestDuration = new Histogram({
+  name: 'osmexport_osm_api_request_duration_seconds',
+  help: 'Duration of outbound OSM API requests, by query kind and outcome',
   labelNames: ['query', 'outcome'],
-  buckets: [0.5, 1, 2.5, 5, 10, 20, 30, 60],
+  // Lower buckets than the Overpass queries this replaced, which it outruns.
+  buckets: [0.25, 0.5, 1, 2.5, 5, 10, 20, 30, 60],
   registers: [registry],
 });
 
@@ -85,11 +86,11 @@ export const metricsMiddleware: RequestHandler = (req, res, next) => {
   next();
 };
 
-export async function observeOverpassQuery<T>(
+export async function observeOsmApiQuery<T>(
   query: string,
   run: () => Promise<T>,
 ): Promise<T> {
-  const stop = overpassRequestDuration.startTimer({query});
+  const stop = osmApiRequestDuration.startTimer({query});
   try {
     const result = await run();
     stop({outcome: 'success'});

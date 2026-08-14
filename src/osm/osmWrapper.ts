@@ -1,5 +1,5 @@
 import type {FeatureCollection, GeometryObject} from 'geojson';
-import {fetchNodesInRelation, fetchRelation} from './osmApi.ts';
+import {fetchRelation} from './osmApi.ts';
 import {getLogger} from '../logger.ts';
 import osmtogeojson from 'osmtogeojson';
 
@@ -14,18 +14,6 @@ export async function getFullRelation(
   return osmtogeojson(osmJson, {
     uninterestingTags() {
       return filter;
-    },
-  });
-}
-
-export async function getRelationNodes(
-  relationId: number,
-): Promise<FeatureCollection<GeometryObject>> {
-  logger.verbose(`Getting nodes for relation '${relationId}'`);
-  const osmJson = await fetchNodesInRelation(relationId);
-  return osmtogeojson(osmJson, {
-    uninterestingTags() {
-      return true;
     },
   });
 }
