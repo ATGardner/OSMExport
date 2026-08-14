@@ -132,6 +132,62 @@ tests:
             app.kubernetes.io/name: osmexport
             app.kubernetes.io/instance: test-release
 
+  # Mounting the volume somewhere other than where winston writes is the
+  # failure this chart cannot detect at install time: the PVC binds, the pod
+  # runs, and the logs still go to the container filesystem.
+  - it: mounts no volume by default
+    asserts:
+      - notExists:
+          path: spec.template.spec.volumes
+      - notExists:
+          path: spec.template.spec.containers[0].volumeMounts
+
+  - it: mounts the claim it provisions at the app's log directory
+    set:
+      persistence.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0]
+          value:
+            name: logs
+            mountPath: /app/logs
+      - equal:
+          path: spec.template.spec.volumes[0]
+          value:
+            name: logs
+            persistentVolumeClaim:
+              claimName: test-release-osmexport
+
+  - it: mounts an existing claim by name
+    set:
+      persistence.enabled: true
+      persistence.existingClaim: my-logs
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[0].persistentVolumeClaim.claimName
+          value: my-logs
+
+  # fsGroup is what makes the root-owned volume writable by the unprivileged
+  # user in the image. It belongs on the pod, not the container — Kubernetes
+  # accepts a container-level securityContext without it and silently ignores
+  # the ownership change.
+  - it: sets fsGroup on the pod to match the image's GID
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.fsGroup
+          value: 10001
+      - notExists:
+          path: spec.template.spec.containers[0].securityContext
+
+  # Nulled rather than set to {} — helm merges maps, so an empty map leaves the
+  # default fsGroup in place and would assert nothing.
+  - it: omits the pod securityContext when emptied
+    set:
+      podSecurityContext: null
+    asserts:
+      - notExists:
+          path: spec.template.spec.securityContext
+
   - it: probes the named port so it tracks containerPort
     asserts:
       - equal:

@@ -1,0 +1,35 @@
+{{/*
+Fails the render rather than the schedule. A ReadWriteOnce claim binds to a
+single node, so a second replica sits Pending indefinitely with an event nobody
+reads. Only checked for claims this chart provisions — an existingClaim's real
+access modes live on that object, not in these values.
+*/}}
+{{- if and .Values.persistence.enabled (not .Values.persistence.existingClaim) (gt (int .Values.replicaCount) 1) (not (has "ReadWriteMany" .Values.persistence.accessModes)) }}
+{{- fail "persistence.accessModes must include ReadWriteMany when replicaCount > 1" }}
+{{- end }}
+{{- if and .Values.persistence.enabled (not .Values.persistence.existingClaim) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "osmexport.fullname" . }}
+  labels:
+    {{- include "osmexport.labels" . | nindent 4 }}
+  {{- with .Values.persistence.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    {{- toYaml .Values.persistence.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size | quote }}
+  {{- with .Values.persistence.storageClass }}
+  {{- if eq . "-" }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  {{- end }}
+{{- end }}
