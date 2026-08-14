@@ -5,6 +5,7 @@ import type {
   Point,
   Position,
 } from 'geojson';
+import {observeGpxSize, observeRelationPoints} from './metrics.ts';
 import LatLon from 'geodesy/latlon-ellipsoidal-vincenty.js';
 import _ from 'lodash';
 import {getFullRelation} from './osm/osmWrapper.ts';
@@ -226,13 +227,24 @@ export async function getRelation(
     relation.geometry.coordinates.reverse();
   }
 
+  /*
+   * Point count is the input size that actually drives how long the rest of
+   * this takes — `addMarkers` runs a Vincenty solution per point — so it is
+   * what makes a slow export explainable rather than just slow.
+   */
+  observeRelationPoints(
+    waysOf(relation.geometry).reduce((total, way) => total + way.length, 0),
+  );
   const markers = addMarkers(relation, markerDiff);
   const {
     properties: {name, 'name:en': nameEn = name, timestamp},
   } = relation;
   const fileName = `${nameEn}-${moment(timestamp).format('YY-MM-DD')}.gpx`;
+  // Not named `gpx`; that would shadow the builder module imported above.
+  const gpxXml = createGpx(relation, markers, segmentLimit);
+  observeGpxSize(gpxXml);
   return {
     fileName,
-    gpx: createGpx(relation, markers, segmentLimit),
+    gpx: gpxXml,
   };
 }

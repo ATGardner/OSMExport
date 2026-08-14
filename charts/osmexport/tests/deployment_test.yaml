@@ -56,6 +56,87 @@ tests:
           path: spec.template.spec.containers[0].ports[0].name
           value: http
 
+  # METRICS_ENABLED is what actually stops the listener — the app serves
+  # metrics when it is unset, so an unset variable here would leave a disabled
+  # release still listening on a port the chart never declared or exposed.
+  # That is why it is rendered either way rather than only when metrics are on.
+  - it: declares no metrics port by default and tells the app to stay quiet
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].ports
+          count: 1
+      - equal:
+          path: spec.template.spec.containers[0].env[1]
+          value:
+            name: METRICS_ENABLED
+            value: "false"
+
+  - it: drives the metrics port and env vars from metrics.port when enabled
+    set:
+      metrics.enabled: true
+      metrics.port: 9099
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[1]
+          value:
+            name: METRICS_ENABLED
+            value: "true"
+      - equal:
+          path: spec.template.spec.containers[0].env[2]
+          value:
+            name: METRICS_PORT
+            value: "9099"
+      - equal:
+          path: spec.template.spec.containers[0].ports[1]
+          value:
+            name: metrics
+            containerPort: 9099
+            protocol: TCP
+
+  # The port in the annotation has to track metrics.port. Hardcoding it in
+  # values.yaml renders a scrape target that is valid YAML, gets discovered,
+  # and times out against a closed port.
+  - it: annotates the pod for annotation-based scraping, using metrics.port
+    set:
+      metrics.enabled: true
+      metrics.scrapeAnnotations: true
+      metrics.port: 9099
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations
+          value:
+            prometheus.io/scrape: "true"
+            prometheus.io/path: /metrics
+            prometheus.io/port: "9099"
+
+  - it: merges the scrape annotations with the user's podAnnotations
+    set:
+      metrics.enabled: true
+      metrics.scrapeAnnotations: true
+      podAnnotations:
+        team: maps
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["team"]
+          value: maps
+      - equal:
+          path: spec.template.metadata.annotations["prometheus.io/scrape"]
+          value: "true"
+
+  - it: adds no scrape annotations by default
+    asserts:
+      - notExists:
+          path: spec.template.metadata.annotations
+
+  # The two flags are opt-in independently, so asking to be scraped without
+  # exposing the port must not annotate a target nothing can reach.
+  - it: omits the scrape annotations unless the metrics port is exposed too
+    set:
+      metrics.scrapeAnnotations: true
+    asserts:
+      - notExists:
+          path: spec.template.metadata.annotations
+
   - it: omits empty optional blocks rather than emitting nulls
     asserts:
       - notExists:

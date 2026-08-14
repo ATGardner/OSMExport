@@ -29,3 +29,27 @@ tests:
           value:
             app.kubernetes.io/name: osmexport
             app.kubernetes.io/instance: test-release
+
+  # The ServiceMonitor selects this port by name, so the name is load-bearing
+  # in a way `helm lint` cannot see.
+  - it: exposes the metrics port by name alongside http when enabled
+    set:
+      metrics.enabled: true
+      metrics.port: 9099
+    asserts:
+      - equal:
+          path: spec.ports[1]
+          value:
+            port: 9099
+            targetPort: metrics
+            protocol: TCP
+            name: metrics
+
+  - it: exposes only http by default
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 1
+      - equal:
+          path: spec.ports[0].name
+          value: http

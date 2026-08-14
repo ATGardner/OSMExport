@@ -12,5 +12,12 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
+    {{- if .Values.metrics.enabled }}
+    # Named `metrics` because the ServiceMonitor selects the port by this name.
+    - port: {{ .Values.metrics.port }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+    {{- end }}
   selector:
     {{- include "osmexport.selectorLabels" . | nindent 4 }}
