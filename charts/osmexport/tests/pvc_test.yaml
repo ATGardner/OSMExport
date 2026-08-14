@@ -1,0 +1,109 @@
+---
+# The storageClass encoding is the trap here. "" and "-" mean opposite things
+# to Kubernetes — omitted takes the cluster default, empty string disables
+# dynamic provisioning — and both render as valid YAML, so a chart that mixes
+# them up installs cleanly and binds the wrong volume.
+suite: persistent volume claim
+templates:
+  - pvc.yaml
+release:
+  name: test-release
+tests:
+  - it: creates no claim by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: creates a claim when persistence is enabled
+    set:
+      persistence.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: PersistentVolumeClaim
+      - equal:
+          path: metadata.name
+          value: test-release-osmexport
+      - equal:
+          path: spec.accessModes
+          value:
+            - ReadWriteOnce
+      - equal:
+          path: spec.resources.requests.storage
+          value: 1Gi
+
+  - it: omits storageClassName so the cluster default applies
+    set:
+      persistence.enabled: true
+    asserts:
+      - notExists:
+          path: spec.storageClassName
+
+  - it: names an explicit storage class
+    set:
+      persistence.enabled: true
+      persistence.storageClass: fast
+    asserts:
+      - equal:
+          path: spec.storageClassName
+          value: fast
+
+  # A literal dash is the Helm convention for "no class at all", which is how
+  # you bind a hand-provisioned PV. It has to become an empty string, not the
+  # string "-", which would name a StorageClass that does not exist.
+  - it: turns a literal dash into an empty storage class
+    set:
+      persistence.enabled: true
+      persistence.storageClass: "-"
+    asserts:
+      - equal:
+          path: spec.storageClassName
+          value: ""
+
+  - it: creates no claim when an existing one is named
+    set:
+      persistence.enabled: true
+      persistence.existingClaim: my-logs
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: applies claim annotations
+    set:
+      persistence.enabled: true
+      persistence.annotations:
+        helm.sh/resource-policy: keep
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/resource-policy"]
+          value: keep
+
+  - it: refuses a ReadWriteOnce claim shared by several replicas
+    set:
+      persistence.enabled: true
+      replicaCount: 2
+    asserts:
+      - failedTemplate:
+          errorMessage: persistence.accessModes must include ReadWriteMany when replicaCount > 1
+
+  - it: allows several replicas on a ReadWriteMany claim
+    set:
+      persistence.enabled: true
+      replicaCount: 2
+      persistence.accessModes:
+        - ReadWriteMany
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  # An existingClaim's access modes live on that object, so these values say
+  # nothing about it and the guard must not read them.
+  - it: leaves the replica check to the cluster for an existing claim
+    set:
+      persistence.enabled: true
+      persistence.existingClaim: my-logs
+      replicaCount: 2
+    asserts:
+      - hasDocuments:
+          count: 0

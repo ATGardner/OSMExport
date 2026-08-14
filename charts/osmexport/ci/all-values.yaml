@@ -57,6 +57,21 @@ ingress:
       hosts:
         - osmexport.example.com
 
+# ReadWriteMany because replicaCount is 2 above, which the chart refuses to
+# render against a ReadWriteOnce claim.
+persistence:
+  enabled: true
+  storageClass: fast
+  accessModes:
+    - ReadWriteMany
+  size: 5Gi
+  annotations:
+    helm.sh/resource-policy: keep
+
+podSecurityContext:
+  fsGroup: 10001
+  runAsNonRoot: true
+
 resources:
   limits:
     cpu: 100m

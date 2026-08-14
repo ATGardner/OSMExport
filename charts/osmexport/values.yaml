@@ -59,6 +59,38 @@ ingress:
 # The app serves on 3000 and reads PORT from the environment.
 containerPort: 3000
 
+# Winston writes error.log and combined.log under the image's WORKDIR, so by
+# default they live in the container filesystem and are lost when the pod is
+# replaced. Enable this to keep them on a PersistentVolume instead.
+persistence:
+  enabled: false
+  # Bind a PVC you manage yourself. Every provisioning field below is ignored
+  # when this is set, and the chart creates no PVC of its own.
+  existingClaim: ""
+  # "" omits storageClassName entirely, so the cluster's default class applies.
+  # A literal "-" sets it to the empty string, which disables dynamic
+  # provisioning and binds a PV you created by hand.
+  storageClass: ""
+  # ReadWriteOnce is right for a single replica. Raising replicaCount with a
+  # RWO claim leaves every pod after the first stuck in Pending, so the chart
+  # refuses that combination rather than letting it fail at schedule time.
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
+  annotations: {}
+  #  helm.sh/resource-policy: keep
+  # Must match where the app actually writes. logger.ts logs to a relative
+  # `logs/` path and the image's WORKDIR is /app, so this is /app/logs.
+  # Pointing it elsewhere mounts a volume nothing ever writes to.
+  mountPath: /app/logs
+
+# A freshly provisioned volume is owned by root, but the image runs as the
+# unprivileged osmexport user. Without a matching fsGroup the kubelet leaves
+# the volume root unwritable and winston fails to create its log files, so
+# this defaults to the image's GID. Ignored when no volume is mounted.
+podSecurityContext:
+  fsGroup: 10001
+
 resources: {}
 
 # There is no health endpoint, so both probes check the listening socket.
