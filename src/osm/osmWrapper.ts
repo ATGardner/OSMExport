@@ -6,7 +6,7 @@ import osmtogeojson from 'osmtogeojson';
 const logger = getLogger('osmWrapper');
 
 export async function getFullRelation(
-  relationId: string,
+  relationId: number,
   filter = true,
 ): Promise<FeatureCollection<GeometryObject>> {
   logger.verbose(`Getting full relation '${relationId}'`);
@@ -19,7 +19,7 @@ export async function getFullRelation(
 }
 
 export async function getRelationNodes(
-  relationId: string,
+  relationId: number,
 ): Promise<FeatureCollection<GeometryObject>> {
   logger.verbose(`Getting nodes for relation '${relationId}'`);
   const osmJson = await fetchNodesInRelation(relationId);
