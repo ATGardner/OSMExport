@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.3.0](https://github.com/ATGardner/OSMExport/compare/v2.2.0...v2.3.0) (2026-08-14)
+
+
+### Features
+
+* **api:** validate query params and reject bad input with 400 ([#537](https://github.com/ATGardner/OSMExport/issues/537)) ([b101685](https://github.com/ATGardner/OSMExport/commit/b1016855c91662f625625b6433a6e04a2e6a1720))
+* **chart:** add optional PVC for the winston log files ([#539](https://github.com/ATGardner/OSMExport/issues/539)) ([96e6287](https://github.com/ATGardner/OSMExport/commit/96e628751f7b1a93d86675236d7f3fd17d7584ad))
+
 ## [2.2.0](https://github.com/ATGardner/OSMExport/compare/v2.1.1...v2.2.0) (2026-08-13)
 
 
