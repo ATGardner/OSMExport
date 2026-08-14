@@ -94,6 +94,9 @@ metrics:
 # Winston writes error.log and combined.log under the image's WORKDIR, so by
 # default they live in the container filesystem and are lost when the pod is
 # replaced. Enable this to keep them on a PersistentVolume instead.
+#
+# The same lines also go to stdout as JSON, so if a log collector is already
+# shipping them off the node this buys little beyond a second copy.
 persistence:
   enabled: false
   # Bind a PVC you manage yourself. Every provisioning field below is ignored
