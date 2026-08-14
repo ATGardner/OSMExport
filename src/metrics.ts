@@ -37,11 +37,16 @@ const overpassRequestDuration = new Histogram({
   registers: [registry],
 });
 
-const gpxSizeBytes = new Histogram({
-  name: 'osmexport_gpx_size_bytes',
-  help: 'Size of generated GPX documents',
-  // The Israel National Trail, one of the largest relations exported, is ~2MB.
-  buckets: [10e3, 100e3, 500e3, 2e6, 8e6, 32e6],
+const exportSizeBytes = new Histogram({
+  name: 'osmexport_export_size_bytes',
+  help: 'Size of generated export documents, by format',
+  labelNames: ['format'],
+  /*
+   * The Israel National Trail, one of the largest relations exported, is ~2MB
+   * of GPX. The low buckets are there for KMZ, which deflates the same relation
+   * by roughly an order of magnitude.
+   */
+  buckets: [1e3, 10e3, 100e3, 500e3, 2e6, 8e6, 32e6],
   registers: [registry],
 });
 
@@ -99,9 +104,9 @@ export function observeRelationPoints(count: number): void {
   relationPoints.observe(count);
 }
 
-export function observeGpxSize(gpx: string): void {
-  // Byte length, not string length — GPX carries non-ASCII relation names.
-  gpxSizeBytes.observe(Buffer.byteLength(gpx));
+export function observeExportSize(format: string, body: string | Buffer): void {
+  // Byte length, not string length — exports carry non-ASCII relation names.
+  exportSizeBytes.observe({format}, Buffer.byteLength(body));
 }
 
 /*

@@ -1,7 +1,10 @@
-import {BadRequestError, getRelation, parseRelationRequest} from './osm2gpx.ts';
+import {BadRequestError, parseRelationRequest} from './relation.ts';
 import express, {type ErrorRequestHandler, type RequestHandler} from 'express';
+import {getRelationKml, getRelationKmz} from './osm2kml.ts';
 import {metricsMiddleware, startMetricsServer} from './metrics.ts';
+import type {RelationExporter} from './relation.ts';
 import {getLogger} from './logger.ts';
+import {getRelationGpx} from './osm2gpx.ts';
 import slug from 'slug';
 
 const app = express();
@@ -10,35 +13,43 @@ const logger = getLogger('app');
 
 slug.defaults.mode = 'rfc3986';
 
-const handler: RequestHandler<Record<string, never>, string> = async (
-  req,
-  res,
-) => {
-  const request = parseRelationRequest(req.query);
-  const {relationId} = request;
-  logger.info(`creating gpx - ${relationId}`);
-  logger.profile(relationId);
-  try {
-    const {fileName, gpx} = await getRelation(request);
-    const safeFileName = encodeURI(
-      slug(fileName, {
-        replacement: ' ',
-        symbols: false,
-        remove: null,
-        lower: false,
-        charmap: slug.charmap,
-        multicharmap: slug.multicharmap,
-      }),
-    );
-    res.set({
-      'Content-Disposition': `attachment; filename="${safeFileName}"`,
-      'Content-Type': 'application/xml',
-    });
-    res.send(gpx);
-  } finally {
+/*
+ * A route per format rather than a `format` query param, so the URL a user
+ * bookmarks or pastes says what it hands back and `metricsMiddleware` splits
+ * the latency histogram by format for free — the route pattern is already its
+ * label.
+ */
+function createHandler(
+  format: string,
+  getRelation: RelationExporter,
+): RequestHandler<Record<string, never>> {
+  return async (req, res) => {
+    const request = parseRelationRequest(req.query);
+    const {relationId} = request;
+    logger.info(`creating ${format} - ${relationId}`);
     logger.profile(relationId);
-  }
-};
+    try {
+      const {fileName, contentType, body} = await getRelation(request);
+      const safeFileName = encodeURI(
+        slug(fileName, {
+          replacement: ' ',
+          symbols: false,
+          remove: null,
+          lower: false,
+          charmap: slug.charmap,
+          multicharmap: slug.multicharmap,
+        }),
+      );
+      res.set({
+        'Content-Disposition': `attachment; filename="${safeFileName}"`,
+        'Content-Type': contentType,
+      });
+      res.send(body);
+    } finally {
+      logger.profile(relationId);
+    }
+  };
+}
 
 /*
  * Express 5 forwards rejected handler promises here, so `parseRelationRequest`
@@ -67,10 +78,14 @@ const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
  *INT - http://localhost:3000/osm2gpx?relationId=282071&markerDiff=1609.34
  *JMT - http://localhost:3000/osm2gpx?relationId=1244828&markerDiff=1609.34&reverse=1&segmentLimit=0
  * 6148296 - ramon crater
+ *http://localhost:3000/osm2kml?relationId=282071
+ *http://localhost:3000/osm2kmz?relationId=282071
  */
 // Ahead of the routes, so unmatched paths and error responses are counted too.
 app.use(metricsMiddleware);
-app.get('/osm2gpx', handler);
+app.get('/osm2gpx', createHandler('gpx', getRelationGpx));
+app.get('/osm2kml', createHandler('kml', getRelationKml));
+app.get('/osm2kmz', createHandler('kmz', getRelationKmz));
 app.use(errorHandler);
 
 const port = process.env.PORT || 3000;

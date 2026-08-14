@@ -1,10 +1,20 @@
+import {getRelationKml, getRelationKmz} from './src/osm2kml.ts';
+import type {RelationExporter} from './src/relation.ts';
 import {getLogger} from './src/logger.ts';
-import {getRelation} from './src/osm2gpx.ts';
+import {getRelationGpx} from './src/osm2gpx.ts';
 import {hideBin} from 'yargs/helpers';
 import {writeFileSync} from 'fs';
 import yargs from 'yargs';
 
 const logger = getLogger('commandLine');
+
+const formats = ['gpx', 'kml', 'kmz'] as const;
+
+const exporters: Record<(typeof formats)[number], RelationExporter> = {
+  gpx: getRelationGpx,
+  kml: getRelationKml,
+  kmz: getRelationKmz,
+};
 
 await yargs(hideBin(process.argv))
   .usage('Usage: $0 <command> [options]')
@@ -12,19 +22,35 @@ await yargs(hideBin(process.argv))
     'node $0 getRelation 282071',
     'Exports the Israel National Trail into a gpx file',
   )
+  .example(
+    'node $0 getRelation 282071 -f kmz',
+    'Exports the same trail as a Google Earth kmz file',
+  )
   .command({
     command: 'getRelation <relationId>',
-    describe: 'Exports the relation to a gpx file',
+    describe: 'Exports the relation to a gpx, kml or kmz file',
+    /*
+     * Declared here rather than in the global `.options()` block below, which
+     * yargs applies after the command and so leaves untyped in `argv` — the
+     * one option whose value is used as a lookup key needs its union type.
+     */
     builder: (command) =>
-      command.positional('relationId', {
-        describe: 'Open Street Maps Relation Id to export',
-        type: 'number',
-        demandOption: true,
-      }),
+      command
+        .positional('relationId', {
+          describe: 'Open Street Maps Relation Id to export',
+          type: 'number',
+          demandOption: true,
+        })
+        .option('format', {
+          alias: 'f',
+          choices: formats,
+          default: 'gpx' as const,
+          describe: 'The output format',
+        }),
     async handler(argv) {
       try {
-        const {fileName, gpx} = await getRelation(argv);
-        writeFileSync(fileName, gpx);
+        const {fileName, body} = await exporters[argv.format](argv);
+        writeFileSync(fileName, body);
         logger.info(`Done writing file "${fileName}"`);
       } catch (error) {
         logger.error(error);
