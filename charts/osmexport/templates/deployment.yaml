@@ -12,7 +12,11 @@ spec:
       {{- include "osmexport.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
+      {{- $scrapeAnnotations := dict }}
+      {{- if and .Values.metrics.enabled .Values.metrics.scrapeAnnotations }}
+      {{- $scrapeAnnotations = dict "prometheus.io/scrape" "true" "prometheus.io/path" "/metrics" "prometheus.io/port" (.Values.metrics.port | toString) }}
+      {{- end }}
+      {{- with merge (deepCopy (.Values.podAnnotations | default dict)) $scrapeAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -37,10 +41,22 @@ spec:
           env:
             - name: PORT
               value: {{ .Values.containerPort | quote }}
+            # Set either way rather than only when enabled: the app defaults to
+            # serving metrics when this is unset, so leaving it off would run a
+            # listener the chart never declared or exposed.
+            - name: METRICS_ENABLED
+              value: {{ .Values.metrics.enabled | quote }}
+            - name: METRICS_PORT
+              value: {{ .Values.metrics.port | quote }}
           ports:
             - name: http
               containerPort: {{ .Values.containerPort }}
               protocol: TCP
+            {{- if .Values.metrics.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.metrics.port }}
+              protocol: TCP
+            {{- end }}
           {{- with .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

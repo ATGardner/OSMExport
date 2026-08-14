@@ -1,0 +1,97 @@
+---
+# A ServiceMonitor that renders but selects nothing is the failure mode here:
+# it installs cleanly, Prometheus accepts it, and no series ever appear. So
+# assert the selector and the endpoint port against the same literals the
+# Service and Deployment use.
+suite: servicemonitor
+templates:
+  - servicemonitor.yaml
+release:
+  name: test-release
+tests:
+  - it: renders nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # The other half of the `and` guard: metrics exposed, but no one asked the
+  # operator to scrape them.
+  - it: renders nothing when metrics are on but the serviceMonitor is not
+    set:
+      metrics.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # The CRD is not installed on most clusters, so rendering a ServiceMonitor
+  # for someone who only turned metrics on would fail their install outright.
+  - it: renders nothing when metrics are off, even if the serviceMonitor is on
+    set:
+      metrics.enabled: false
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: selects this release's pods and scrapes the named metrics port
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ServiceMonitor
+      - equal:
+          path: spec.selector.matchLabels
+          value:
+            app.kubernetes.io/name: osmexport
+            app.kubernetes.io/instance: test-release
+      # By name, not number — a numeric port here would silently stop matching
+      # the moment metrics.port changed.
+      - equal:
+          path: spec.endpoints[0].port
+          value: metrics
+      - equal:
+          path: spec.endpoints[0].path
+          value: /metrics
+      - equal:
+          path: spec.namespaceSelector.matchNames[0]
+          value: NAMESPACE
+
+  # Empty means "inherit the Prometheus instance's defaults". Rendering the
+  # keys with empty values instead sets a zero interval, which the operator
+  # rejects at reload time rather than at install time.
+  - it: omits interval and scrapeTimeout when they are empty
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+    asserts:
+      - notExists:
+          path: spec.endpoints[0].interval
+      - notExists:
+          path: spec.endpoints[0].scrapeTimeout
+
+  - it: renders interval, scrapeTimeout and extra labels when set
+    set:
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.interval: 30s
+      metrics.serviceMonitor.scrapeTimeout: 10s
+      metrics.serviceMonitor.labels:
+        release: kube-prometheus-stack
+    asserts:
+      - equal:
+          path: spec.endpoints[0].interval
+          value: 30s
+      - equal:
+          path: spec.endpoints[0].scrapeTimeout
+          value: 10s
+      # Merged into the chart's own labels, not replacing them — the operator
+      # selects on this one while app.kubernetes.io/* stays intact.
+      - equal:
+          path: metadata.labels["release"]
+          value: kube-prometheus-stack
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: osmexport

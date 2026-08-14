@@ -59,6 +59,38 @@ ingress:
 # The app serves on 3000 and reads PORT from the environment.
 containerPort: 3000
 
+# Prometheus metrics, served on their own listener separate from the API —
+# `ingress` and `httpRoute` send every path to the `http` port, so a /metrics
+# route there would be published to the internet along with the exporter.
+#
+# Off by default: the app exports nothing about itself that it needs in order
+# to work, so this is opt-in like every other optional block in this chart.
+# Enabling it sets METRICS_ENABLED on the container, declares the port and
+# adds it to the Service.
+metrics:
+  enabled: false
+  # Read by the app as METRICS_PORT, and the port the Service exposes.
+  port: 9091
+  # Adds the prometheus.io/{scrape,path,port} pod annotations, for a Prometheus
+  # that discovers targets by annotation. The port is rendered from
+  # metrics.port above, so the two cannot drift.
+  #
+  # Also opt-in, and deliberately separate from `enabled`: exposing the port
+  # changes nothing on its own, but these annotations make a Prometheus this
+  # chart does not own start ingesting series and spending its storage. Worth
+  # asking for explicitly.
+  scrapeAnnotations: false
+  # For the Prometheus Operator instead. Needs the ServiceMonitor CRD, so it
+  # is off by default; enabling it without the CRD fails the install.
+  serviceMonitor:
+    enabled: false
+    # Empty means inherit the Prometheus instance's own defaults.
+    interval: ""
+    scrapeTimeout: ""
+    # Most operator deployments only select ServiceMonitors carrying a
+    # particular label — check `spec.serviceMonitorSelector` on your Prometheus.
+    labels: {}
+
 # Winston writes error.log and combined.log under the image's WORKDIR, so by
 # default they live in the container filesystem and are lost when the pod is
 # replaced. Enable this to keep them on a PersistentVolume instead.

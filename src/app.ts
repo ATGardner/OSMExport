@@ -1,5 +1,6 @@
 import {BadRequestError, getRelation, parseRelationRequest} from './osm2gpx.ts';
 import express, {type ErrorRequestHandler, type RequestHandler} from 'express';
+import {metricsMiddleware, startMetricsServer} from './metrics.ts';
 import {getLogger} from './logger.ts';
 import slug from 'slug';
 
@@ -67,6 +68,8 @@ const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
  *JMT - http://localhost:3000/osm2gpx?relationId=1244828&markerDiff=1609.34&reverse=1&segmentLimit=0
  * 6148296 - ramon crater
  */
+// Ahead of the routes, so unmatched paths and error responses are counted too.
+app.use(metricsMiddleware);
 app.get('/osm2gpx', handler);
 app.use(errorHandler);
 
@@ -74,3 +77,5 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   logger.info(`OSMExport listening on port ${port}!`);
 });
+
+startMetricsServer();
