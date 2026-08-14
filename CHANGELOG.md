@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.4.0](https://github.com/ATGardner/OSMExport/compare/v2.3.0...v2.4.0) (2026-08-14)
+
+
+### Features
+
+* **logging:** cap the log files by size and count ([#540](https://github.com/ATGardner/OSMExport/issues/540)) ([32fd443](https://github.com/ATGardner/OSMExport/commit/32fd443efe57a62ac81fb5dff4f78c2931b3bb08))
+* **metrics:** export prometheus metrics on a separate port ([#542](https://github.com/ATGardner/OSMExport/issues/542)) ([77bc227](https://github.com/ATGardner/OSMExport/commit/77bc227e5ae0b20155fcbef8c92ae240fb7c7413))
+
+
+### Bug Fixes
+
+* **logging:** write to stdout in production ([#543](https://github.com/ATGardner/OSMExport/issues/543)) ([1f5be29](https://github.com/ATGardner/OSMExport/commit/1f5be296b2e68a72bbd4c00e760fb648f28863e7))
+
 ## [2.3.0](https://github.com/ATGardner/OSMExport/compare/v2.2.0...v2.3.0) (2026-08-14)
 
 
