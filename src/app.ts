@@ -1,5 +1,5 @@
-import {type RelationRequest, getRelation} from './osm2gpx.ts';
-import express, {type RequestHandler} from 'express';
+import {BadRequestError, getRelation, parseRelationRequest} from './osm2gpx.ts';
+import express, {type ErrorRequestHandler, type RequestHandler} from 'express';
 import {getLogger} from './logger.ts';
 import slug from 'slug';
 
@@ -9,17 +9,16 @@ const logger = getLogger('app');
 
 slug.defaults.mode = 'rfc3986';
 
-const handler: RequestHandler<
-  Record<string, never>,
-  string,
-  never,
-  RelationRequest
-> = async ({query, query: {relationId}}, res) => {
+const handler: RequestHandler<Record<string, never>, string> = async (
+  req,
+  res,
+) => {
+  const request = parseRelationRequest(req.query);
+  const {relationId} = request;
   logger.info(`creating gpx - ${relationId}`);
   logger.profile(relationId);
   try {
-    const {fileName, gpx} = await getRelation(query);
-    logger.profile(relationId);
+    const {fileName, gpx} = await getRelation(request);
     const safeFileName = encodeURI(
       slug(fileName, {
         replacement: ' ',
@@ -35,11 +34,29 @@ const handler: RequestHandler<
       'Content-Type': 'application/xml',
     });
     res.send(gpx);
-  } catch (error) {
-    logger.error(`failed creating gpx - ${relationId}`, error);
+  } finally {
     logger.profile(relationId);
-    res.set('Content-Type', 'text/plain').status(500).send('An error occured');
   }
+};
+
+/*
+ * Express 5 forwards rejected handler promises here, so `parseRelationRequest`
+ * can throw its way to a 400 without a try/catch at the call site.
+ */
+const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
+
+  if (error instanceof BadRequestError) {
+    logger.warn(`bad request - ${req.originalUrl}`, error);
+    res.set('Content-Type', 'text/plain').status(400).send(error.message);
+    return;
+  }
+
+  logger.error(`failed handling request - ${req.originalUrl}`, error);
+  res.set('Content-Type', 'text/plain').status(500).send('An error occured');
 };
 
 /*
@@ -51,6 +68,7 @@ const handler: RequestHandler<
  * 6148296 - ramon crater
  */
 app.get('/osm2gpx', handler);
+app.use(errorHandler);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

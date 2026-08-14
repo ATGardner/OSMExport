@@ -23,7 +23,7 @@ async function overpassQuery(query: string) {
   return result.json();
 }
 
-export function fetchRelation(relationId: string) {
+export function fetchRelation(relationId: number) {
   return overpassQuery(`
     relation(${relationId});
     (._;>;);
@@ -31,7 +31,7 @@ export function fetchRelation(relationId: string) {
   `);
 }
 
-export function fetchNodesInRelation(relationId: string) {
+export function fetchNodesInRelation(relationId: number) {
   return overpassQuery(`
     relation(${relationId}) -> .r;
     way(r.r) -> .w;

@@ -25,10 +25,79 @@ type RelationFeature = Feature<LineString | MultiLineString, RelationProps>;
 type MarkerFeature = Feature<Point, {marker: number}>;
 
 export interface RelationRequest {
-  relationId: string | number;
-  segmentLimit?: string | number;
-  markerDiff?: string | number;
-  reverse?: boolean | string;
+  relationId: number;
+  segmentLimit?: number;
+  markerDiff?: number;
+  reverse?: boolean;
+}
+
+export interface RelationResponse {
+  fileName: string;
+  gpx: string;
+}
+
+export class BadRequestError extends Error {
+  name = 'BadRequestError';
+}
+
+function parseRelationId(value: unknown): number {
+  const parsed =
+    typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : NaN;
+  if (!Number.isSafeInteger(parsed)) {
+    throw new BadRequestError('"relationId" must be a numeric OSM relation id');
+  }
+
+  return parsed;
+}
+
+function parseNonNegativeNumber(value: unknown, name: string): number {
+  const parsed =
+    typeof value === 'string' && value.trim() !== '' ? Number(value) : NaN;
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new BadRequestError(`"${name}" must be a non-negative number`);
+  }
+
+  return parsed;
+}
+
+function parseBoolean(value: unknown, name: string): boolean {
+  if (value === '1' || value === 'true') {
+    return true;
+  }
+
+  if (value === '0' || value === 'false') {
+    return false;
+  }
+
+  throw new BadRequestError(`"${name}" must be "0", "1", "true" or "false"`);
+}
+
+/*
+ * Narrows an untrusted query string object into a `RelationRequest`. Absent
+ * optional params are left off so `getRelation` keeps owning their defaults.
+ */
+export function parseRelationRequest(
+  query: Record<string, unknown>,
+): RelationRequest {
+  const request: RelationRequest = {
+    relationId: parseRelationId(query.relationId),
+  };
+  if (typeof query.segmentLimit !== 'undefined') {
+    request.segmentLimit = parseNonNegativeNumber(
+      query.segmentLimit,
+      'segmentLimit',
+    );
+  }
+
+  if (typeof query.markerDiff !== 'undefined') {
+    request.markerDiff = parseNonNegativeNumber(query.markerDiff, 'markerDiff');
+  }
+
+  if (typeof query.reverse !== 'undefined') {
+    request.reverse = parseBoolean(query.reverse, 'reverse');
+  }
+
+  return request;
 }
 
 function waysOf(geometry: LineString | MultiLineString): Position[][] {
@@ -54,20 +123,19 @@ function createGpx(
     time: timestamp,
   });
   logger.info(`Creating GPX for ${id}`);
-  markers.forEach(
-    ({
+  markers.forEach((markerFeature) => {
+    const {
       properties: {marker},
       geometry: {
         coordinates: [longitude, latitude],
       },
-    }) => {
-      builder.addWayPoints({
-        latitude,
-        longitude,
-        name: String(marker),
-      });
-    },
-  );
+    } = markerFeature;
+    builder.addWayPoints({
+      latitude,
+      longitude,
+      name: String(marker),
+    });
+  });
   waysOf(geometry).forEach((way, i) => {
     const pointData = way.map(([longitude, latitude]) => ({
       latitude,
@@ -141,35 +209,30 @@ function addMarkers(
   return markers;
 }
 
-export async function getRelation({
-  relationId,
-  segmentLimit = 0,
-  markerDiff = 1000,
-  reverse,
-}: RelationRequest): Promise<{fileName: string; gpx: string}> {
-  const id = String(relationId);
-  const limit = Number(segmentLimit);
-  const diff = Number(markerDiff);
-  const geoJson = await getFullRelation(id);
+export async function getRelation(
+  request: RelationRequest,
+): Promise<RelationResponse> {
+  const {relationId, segmentLimit = 0, markerDiff = 1000, reverse} = request;
+  const geoJson = await getFullRelation(relationId);
   const relation = geoJson.features.find(
     (f): f is RelationFeature =>
       typeof f.id === 'string' && f.id.startsWith('relation'),
   );
   if (!relation) {
-    throw new Error(`No relation feature found for ${id}`);
+    throw new Error(`No relation feature found for ${relationId}`);
   }
 
   if (reverse) {
     relation.geometry.coordinates.reverse();
   }
 
-  const markers = addMarkers(relation, diff);
+  const markers = addMarkers(relation, markerDiff);
   const {
     properties: {name, 'name:en': nameEn = name, timestamp},
   } = relation;
   const fileName = `${nameEn}-${moment(timestamp).format('YY-MM-DD')}.gpx`;
   return {
     fileName,
-    gpx: createGpx(relation, markers, limit),
+    gpx: createGpx(relation, markers, segmentLimit),
   };
 }
