@@ -5,12 +5,26 @@ import type {
   RelationRequest,
 } from './relation.ts';
 import {getRelationData, waysOf} from './relation.ts';
-import _ from 'lodash';
 import {getLogger} from './logger.ts';
 import gpx from 'gpx';
 import {observeExportSize} from './metrics.ts';
 
 const logger = getLogger('osm2gpx');
+
+/*
+ * `size` is assumed greater than one, which the only call site checks before
+ * calling: a size of zero would not terminate, and lodash's `chunk` — which
+ * this replaces — answered that case with an empty array, silently dropping
+ * the track.
+ */
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let start = 0; start < items.length; start += size) {
+    chunks.push(items.slice(start, start + size));
+  }
+
+  return chunks;
+}
 
 function createGpx(
   relation: RelationFeature,
@@ -47,7 +61,7 @@ function createGpx(
       latitude,
       longitude,
     }));
-    const segments = limit > 1 ? _.chunk(pointData, limit) : [pointData];
+    const segments = limit > 1 ? chunk(pointData, limit) : [pointData];
     segments.forEach((segment, j) => {
       builder.addTrack(
         {
