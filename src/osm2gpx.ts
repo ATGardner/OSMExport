@@ -1,4 +1,6 @@
 import {BaseBuilder, buildGPX} from 'gpx-builder';
+import {getLogger} from './logger.ts';
+import {observeExportSize} from './metrics.ts';
 import type {
   ExportResult,
   MarkerFeature,
@@ -6,8 +8,6 @@ import type {
   RelationRequest,
 } from './relation.ts';
 import {getRelationData, waysOf} from './relation.ts';
-import {getLogger} from './logger.ts';
-import {observeExportSize} from './metrics.ts';
 
 const {Metadata, Point, Segment, Track} = BaseBuilder.MODELS;
 const logger = getLogger('osm2gpx');

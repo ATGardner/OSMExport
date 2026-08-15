@@ -1,3 +1,4 @@
+import LatLon from 'geodesy/latlon-ellipsoidal-vincenty.js';
 import type {
   Feature,
   LineString,
@@ -5,12 +6,11 @@ import type {
   Point,
   Position,
 } from 'geojson';
-import {BadRequestError} from './errors.ts';
-import LatLon from 'geodesy/latlon-ellipsoidal-vincenty.js';
-import {getFullRelation} from './osm/osmWrapper.ts';
-import {getLogger} from './logger.ts';
 import moment from 'moment';
+import {BadRequestError} from './errors.ts';
+import {getLogger} from './logger.ts';
 import {observeRelationPoints} from './metrics.ts';
+import {getFullRelation} from './osm/osmWrapper.ts';
 
 const logger = getLogger('relation');
 

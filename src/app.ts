@@ -1,12 +1,12 @@
-import {BadRequestError, NotFoundError} from './errors.ts';
 import express, {type ErrorRequestHandler, type RequestHandler} from 'express';
-import {getRelationKml, getRelationKmz} from './osm2kml.ts';
-import {metricsMiddleware, startMetricsServer} from './metrics.ts';
-import type {RelationExporter} from './relation.ts';
-import {getLogger} from './logger.ts';
-import {getRelationGpx} from './osm2gpx.ts';
-import {parseRelationRequest} from './relation.ts';
 import slug from 'slug';
+import {BadRequestError, NotFoundError} from './errors.ts';
+import {getLogger} from './logger.ts';
+import {metricsMiddleware, startMetricsServer} from './metrics.ts';
+import {getRelationGpx} from './osm2gpx.ts';
+import {getRelationKml, getRelationKmz} from './osm2kml.ts';
+import type {RelationExporter} from './relation.ts';
+import {parseRelationRequest} from './relation.ts';
 
 const app = express();
 
