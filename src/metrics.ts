@@ -1,5 +1,5 @@
-import {Histogram, Registry, collectDefaultMetrics} from 'prom-client';
 import express, {type RequestHandler} from 'express';
+import {Histogram, Registry, collectDefaultMetrics} from 'prom-client';
 import {NotFoundError} from './errors.ts';
 import {getLogger} from './logger.ts';
 

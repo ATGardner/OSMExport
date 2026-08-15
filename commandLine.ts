@@ -1,10 +1,10 @@
-import {getRelationKml, getRelationKmz} from './src/osm2kml.ts';
-import type {RelationExporter} from './src/relation.ts';
-import {getLogger} from './src/logger.ts';
-import {getRelationGpx} from './src/osm2gpx.ts';
-import {hideBin} from 'yargs/helpers';
 import {writeFileSync} from 'fs';
 import yargs from 'yargs';
+import {hideBin} from 'yargs/helpers';
+import {getLogger} from './src/logger.ts';
+import {getRelationGpx} from './src/osm2gpx.ts';
+import {getRelationKml, getRelationKmz} from './src/osm2kml.ts';
+import type {RelationExporter} from './src/relation.ts';
 
 const logger = getLogger('commandLine');
 

@@ -1,12 +1,22 @@
-import globals from 'globals';
 import js from '@eslint/js';
+import importX from 'eslint-plugin-import-x';
 import prettierRecommended from 'eslint-plugin-prettier/recommended';
+import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   prettierRecommended,
+  {
+    /*
+     * Only the ordering rule, not `flatConfigs.recommended`: the rest of that
+     * preset overlaps with what typescript-eslint already checks, and its
+     * resolution rules would have to be taught about the `.ts` extensions this
+     * project imports with.
+     */
+    plugins: {'import-x': importX},
+  },
   {
     languageOptions: {
       parserOptions: {
@@ -41,7 +51,29 @@ export default tseslint.config(
       'prefer-numeric-literals': 'error',
       'prefer-spread': 'error',
       'prefer-template': 'error',
-      'sort-imports': 'error',
+      /*
+       * `import-x/order` owns the order of the statements, `sort-imports` only
+       * the names inside each one. Core `sort-imports` used to own both, but it
+       * sorts declarations by first member name where every editor's organise
+       * imports sorts by path, and it cannot autofix the difference — it only
+       * ever reports it. Splitting the two makes `--fix` and the editor agree.
+       */
+      'import-x/order': [
+        'error',
+        {
+          groups: [
+            'builtin',
+            'external',
+            'internal',
+            'parent',
+            'sibling',
+            'index',
+          ],
+          alphabetize: {order: 'asc', caseInsensitive: true},
+          'newlines-between': 'never',
+        },
+      ],
+      'sort-imports': ['error', {ignoreDeclarationSort: true}],
 
       // Non-fixable - warnings
       'no-await-in-loop': 'warn',

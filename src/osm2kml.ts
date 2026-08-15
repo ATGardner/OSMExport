@@ -1,15 +1,15 @@
+import {foldersToKML} from '@placemarkio/tokml';
+import type {Feature, LineString, MultiLineString, Point} from 'geojson';
+import {ZipFile} from 'yazl';
+import {getLogger} from './logger.ts';
+import {observeExportSize} from './metrics.ts';
 import type {
   ExportResult,
   MarkerFeature,
   RelationFeature,
   RelationRequest,
 } from './relation.ts';
-import type {Feature, LineString, MultiLineString, Point} from 'geojson';
-import {ZipFile} from 'yazl';
-import {foldersToKML} from '@placemarkio/tokml';
-import {getLogger} from './logger.ts';
 import {getRelationData} from './relation.ts';
-import {observeExportSize} from './metrics.ts';
 
 const logger = getLogger('osm2kml');
 

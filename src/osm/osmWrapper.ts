@@ -1,7 +1,7 @@
 import type {FeatureCollection, GeometryObject} from 'geojson';
-import {fetchRelation} from './osmApi.ts';
-import {getLogger} from '../logger.ts';
 import osmtogeojson from 'osmtogeojson';
+import {getLogger} from '../logger.ts';
+import {fetchRelation} from './osmApi.ts';
 
 const logger = getLogger('osmWrapper');
 
