@@ -1,5 +1,6 @@
 import {Histogram, Registry, collectDefaultMetrics} from 'prom-client';
 import express, {type RequestHandler} from 'express';
+import {NotFoundError} from './errors.ts';
 import {getLogger} from './logger.ts';
 
 const logger = getLogger('metrics');
@@ -96,7 +97,12 @@ export async function observeOsmApiQuery<T>(
     stop({outcome: 'success'});
     return result;
   } catch (error) {
-    stop({outcome: 'error'});
+    /*
+     * A missing relation is someone mistyping an id, not the API failing, and
+     * folding the two together would let a bad link raise the upstream error
+     * rate that alerts hang off.
+     */
+    stop({outcome: error instanceof NotFoundError ? 'not_found' : 'error'});
     throw error;
   }
 }

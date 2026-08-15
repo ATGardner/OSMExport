@@ -1,10 +1,11 @@
-import {BadRequestError, parseRelationRequest} from './relation.ts';
+import {BadRequestError, NotFoundError} from './errors.ts';
 import express, {type ErrorRequestHandler, type RequestHandler} from 'express';
 import {getRelationKml, getRelationKmz} from './osm2kml.ts';
 import {metricsMiddleware, startMetricsServer} from './metrics.ts';
 import type {RelationExporter} from './relation.ts';
 import {getLogger} from './logger.ts';
 import {getRelationGpx} from './osm2gpx.ts';
+import {parseRelationRequest} from './relation.ts';
 import slug from 'slug';
 
 const app = express();
@@ -64,6 +65,17 @@ const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
   if (error instanceof BadRequestError) {
     logger.warn(`bad request - ${req.originalUrl}`, error);
     res.set('Content-Type', 'text/plain').status(400).send(error.message);
+    return;
+  }
+
+  /*
+   * Warn rather than error, and the message goes to the client verbatim: an
+   * id that OSM has no relation for is the caller's mistake to fix, and
+   * telling them which relation was missing is the whole point.
+   */
+  if (error instanceof NotFoundError) {
+    logger.warn(`not found - ${req.originalUrl}`, error);
+    res.set('Content-Type', 'text/plain').status(404).send(error.message);
     return;
   }
 
