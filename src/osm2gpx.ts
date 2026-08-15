@@ -1,3 +1,4 @@
+import {BaseBuilder, buildGPX} from 'gpx-builder';
 import type {
   ExportResult,
   MarkerFeature,
@@ -6,7 +7,6 @@ import type {
 } from './relation.ts';
 import {getRelationData, waysOf} from './relation.ts';
 import {getLogger} from './logger.ts';
-import {BaseBuilder, buildGPX} from 'gpx-builder';
 import {observeExportSize} from './metrics.ts';
 
 const {Metadata, Point, Segment, Track} = BaseBuilder.MODELS;
