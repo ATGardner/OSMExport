@@ -1,3 +1,4 @@
+import {BaseBuilder, buildGPX} from 'gpx-builder';
 import type {
   ExportResult,
   MarkerFeature,
@@ -6,9 +7,9 @@ import type {
 } from './relation.ts';
 import {getRelationData, waysOf} from './relation.ts';
 import {getLogger} from './logger.ts';
-import gpx from 'gpx';
 import {observeExportSize} from './metrics.ts';
 
+const {Metadata, Point, Segment, Track} = BaseBuilder.MODELS;
 const logger = getLogger('osm2gpx');
 
 /*
@@ -36,43 +37,40 @@ function createGpx(
     geometry,
     properties: {name, timestamp},
   } = relation;
-  const builder = new gpx.GpxFileBuilder({
-    description: 'Data extracted from OSM',
-    name,
-    creator: 'OpenStreetMap relation export',
-    time: timestamp,
-  });
+
+  const builder = new BaseBuilder();
+  builder.setMetadata(
+    new Metadata({
+      name,
+      desc: 'Data extracted from OSM',
+      time: new Date(timestamp),
+    }),
+  );
   logger.info(`Creating GPX for ${id}`);
-  markers.forEach((markerFeature) => {
-    const {
-      properties: {marker},
-      geometry: {
-        coordinates: [longitude, latitude],
-      },
-    } = markerFeature;
-    builder.addWayPoints({
-      latitude,
-      longitude,
-      name: String(marker),
-    });
-  });
-  waysOf(geometry).forEach((way, i) => {
-    const pointData = way.map(([longitude, latitude]) => ({
-      latitude,
-      longitude,
-    }));
-    const segments = limit > 1 ? chunk(pointData, limit) : [pointData];
-    segments.forEach((segment, j) => {
-      builder.addTrack(
-        {
-          name: `way${i}-seg${j}`,
-          time: timestamp,
+  builder.setWayPoints(
+    markers.map((mf: MarkerFeature) => {
+      const {
+        properties: {marker},
+        geometry: {
+          coordinates: [lon, lat],
         },
-        segment,
-      );
-    });
+      } = mf;
+      return new Point(lat, lon, {name: String(marker)});
+    }),
+  );
+  const tracks = waysOf(geometry).flatMap((way, i) => {
+    const points = way.map(([lon, lat]) => new Point(lat, lon));
+    const segments = limit > 1 ? chunk(points, limit) : [points];
+    return segments.map(
+      (seg, j) => new Track([new Segment(seg)], {name: `way${i}-seg${j}`}),
+    );
   });
-  return builder.xml();
+  builder.setTracks(tracks);
+  const data = builder.toObject();
+  return buildGPX({
+    ...data,
+    attributes: {...data.attributes, creator: 'OpenStreetMap relation export'},
+  });
 }
 
 export async function getRelationGpx(

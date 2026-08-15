@@ -4,9 +4,6 @@ LABEL maintainer="Noam \"Amtrak\" Gal"
 
 ENV NODE_ENV production
 
-# The `gpx` dependency is installed straight from GitHub, so npm needs git.
-RUN apk add --update --no-cache git
-
 # Pinned rather than auto-allocated: the chart's `podSecurityContext.fsGroup`
 # has to name this GID to make a mounted PersistentVolume writable, and it
 # cannot do that if the number shifts when the base image adds a system user.
