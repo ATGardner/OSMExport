@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.5.0](https://github.com/ATGardner/OSMExport/compare/v2.4.0...v2.5.0) (2026-08-15)
+
+
+### Features
+
+* **export:** add kml and kmz endpoints for Google Earth ([#544](https://github.com/ATGardner/OSMExport/issues/544)) ([acec9a4](https://github.com/ATGardner/OSMExport/commit/acec9a40dd27f96c14c9c09c773c0229de3f3154))
+
+
+### Bug Fixes
+
+* **api:** answer 404 for a relation OSM cannot return ([#547](https://github.com/ATGardner/OSMExport/issues/547)) ([1300882](https://github.com/ATGardner/OSMExport/commit/1300882dc4e5bcf3e85546a8048fc27117220c30))
+* **osm:** fetch relations from the OSM API instead of Overpass ([#545](https://github.com/ATGardner/OSMExport/issues/545)) ([78f252f](https://github.com/ATGardner/OSMExport/commit/78f252f144d91b68924143c0121c11f92a61c839))
+
 ## [2.4.0](https://github.com/ATGardner/OSMExport/compare/v2.3.0...v2.4.0) (2026-08-14)
 
 
