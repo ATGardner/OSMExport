@@ -1,6 +1,18 @@
+import {NotFoundError} from '../errors.ts';
 import {observeOsmApiQuery} from '../metrics.ts';
 
 const API_BASE = 'https://api.openstreetmap.org/api/0.6';
+
+/*
+ * 404 is a relation id that was never used, 410 one whose relation has since
+ * been deleted. Both are the caller naming something OSM cannot return, as
+ * opposed to OSM failing, so both become a 404 to our own callers — the
+ * distinction survives in the message rather than the status.
+ */
+const MISSING_STATUSES = new Map([
+  [404, 'was not found'],
+  [410, 'has been deleted'],
+]);
 
 /*
  * Enough to carry the API's own sentence, short enough that a proxy's HTML
@@ -39,9 +51,11 @@ async function describeFailure(response: Response): Promise<string> {
 
 /*
  * `kind` is what labels the metric — the path embeds the relation id, so using
- * it would mint a new series per relation exported.
+ * it would mint a new series per relation exported. `subject` is the opposite:
+ * it names the specific thing that was missing, and is only ever read by a
+ * human.
  */
-function osmApiRequest(kind: string, path: string) {
+function osmApiRequest(kind: string, path: string, subject: string) {
   return observeOsmApiQuery(kind, async () => {
     const result = await fetch(`${API_BASE}${path}`, {
       /*
@@ -53,6 +67,16 @@ function osmApiRequest(kind: string, path: string) {
       headers: {'User-Agent': 'OSMExport/2.0.1'},
     });
     if (!result.ok) {
+      const missing = MISSING_STATUSES.get(result.status);
+      /*
+       * Ahead of `describeFailure`, which would only reach for a message the
+       * API does not send for these two: both answer with an empty body and,
+       * for 410, an empty `Error` header.
+       */
+      if (missing) {
+        throw new NotFoundError(`${subject} ${missing}`);
+      }
+
       throw new Error(await describeFailure(result));
     }
 
@@ -72,5 +96,9 @@ export function fetchRelation(relationId: number) {
    * allows two concurrent slots per IP and the query never got one. The
    * editing API has no such queue, and serves the same relation in seconds.
    */
-  return osmApiRequest('relation', `/relation/${relationId}/full.json`);
+  return osmApiRequest(
+    'relation',
+    `/relation/${relationId}/full.json`,
+    `Relation ${relationId}`,
+  );
 }

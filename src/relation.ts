@@ -5,6 +5,7 @@ import type {
   Point,
   Position,
 } from 'geojson';
+import {BadRequestError} from './errors.ts';
 import LatLon from 'geodesy/latlon-ellipsoidal-vincenty.js';
 import {getFullRelation} from './osm/osmWrapper.ts';
 import {getLogger} from './logger.ts';
@@ -61,10 +62,6 @@ export interface ExportResult {
 export type RelationExporter = (
   request: RelationRequest,
 ) => Promise<ExportResult>;
-
-export class BadRequestError extends Error {
-  name = 'BadRequestError';
-}
 
 function parseRelationId(value: unknown): number {
   const parsed =
