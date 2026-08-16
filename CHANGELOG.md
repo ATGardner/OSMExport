@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.0](https://github.com/ATGardner/OSMExport/compare/v2.6.0...v2.7.0) (2026-08-16)
+
+
+### Features
+
+* **logger:** set the log level from LOG_LEVEL ([#555](https://github.com/ATGardner/OSMExport/issues/555)) ([47aa591](https://github.com/ATGardner/OSMExport/commit/47aa59168681a4282f6522ad909ad619161f5769))
+
 ## [2.6.0](https://github.com/ATGardner/OSMExport/compare/v2.5.0...v2.6.0) (2026-08-16)
 
 
