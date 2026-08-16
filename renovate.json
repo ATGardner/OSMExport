@@ -55,7 +55,25 @@
       "matchDepTypes": [
         "devDependencies"
       ],
-      "groupName": "dev dependencies",
+      "groupName": "dev dependencies"
+    },
+    {
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "groupName": "dev dependencies (major)"
+    },
+    {
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "pinDigest"
+      ],
       "automerge": true
     },
     {
