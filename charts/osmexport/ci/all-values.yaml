@@ -28,6 +28,8 @@ service:
 
 containerPort: 8080
 
+logLevel: debug
+
 # The ServiceMonitor is the chart's second CRD-backed object, so this is what
 # makes kubeconform check it against the monitoring.coreos.com schema.
 metrics:

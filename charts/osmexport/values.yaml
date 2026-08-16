@@ -91,6 +91,13 @@ metrics:
     # particular label — check `spec.serviceMonitorSelector` on your Prometheus.
     labels: {}
 
+# Verbosity, read by the app as LOG_LEVEL. One of winston's npm levels —
+# error, warn, info, http, verbose, debug, silly — matching the `level` field
+# in the lines it writes. "" leaves the variable unset and the app on its own
+# default of info; anything the app does not recognise falls back to info too,
+# with a warning on startup.
+logLevel: ""
+
 # Winston writes error.log and combined.log under the image's WORKDIR, so by
 # default they live in the container filesystem and are lost when the pod is
 # replaced. Enable this to keep them on a PersistentVolume instead.

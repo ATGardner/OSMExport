@@ -93,6 +93,30 @@ tests:
             containerPort: 9099
             protocol: TCP
 
+  # Unset, not empty: the app treats LOG_LEVEL="" as "use the default", but an
+  # env var rendered from every optional value is how a container ends up
+  # carrying a list of empty strings that say nothing about the release.
+  - it: sets no LOG_LEVEL by default
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 3
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LOG_LEVEL
+          any: true
+
+  - it: passes logLevel to the app as LOG_LEVEL
+    set:
+      logLevel: debug
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[3]
+          value:
+            name: LOG_LEVEL
+            value: debug
+
   # The port in the annotation has to track metrics.port. Hardcoding it in
   # values.yaml renders a scrape target that is valid YAML, gets discovered,
   # and times out against a closed port.
