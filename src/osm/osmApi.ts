@@ -1,7 +1,17 @@
+import packageJson from '../../package.json' with {type: 'json'};
 import {NotFoundError} from '../errors.ts';
 import {observeOsmApiQuery} from '../metrics.ts';
 
 const API_BASE = 'https://api.openstreetmap.org/api/0.6';
+
+/*
+ * Read from the manifest rather than written out here: release-please bumps
+ * only package.json, so a literal went stale the moment it was committed —
+ * this header still claimed 2.0.1 at 2.5.0. The image ships package.json
+ * alongside src/, so the import resolves the same way in Docker as it does
+ * from a checkout.
+ */
+const USER_AGENT = `OSMExport/${packageJson.version}`;
 
 /*
  * 404 is a relation id that was never used, 410 one whose relation has since
@@ -64,7 +74,7 @@ function osmApiRequest(kind: string, path: string, subject: string) {
        * but its usage policy asks for an identifying one and blocks by agent
        * when it has to, so this stays.
        */
-      headers: {'User-Agent': 'OSMExport/2.0.1'},
+      headers: {'User-Agent': USER_AGENT},
     });
     if (!result.ok) {
       const missing = MISSING_STATUSES.get(result.status);
