@@ -1,6 +1,25 @@
-import {Logger, createLogger, format, transports} from 'winston';
+import {Logger, config, createLogger, format, transports} from 'winston';
 
 const {combine, colorize, errors, json, simple, timestamp} = format;
+
+/*
+ * `LOG_LEVEL` takes the names winston already writes in the `level` field —
+ * error, warn, info, http, verbose, debug, silly — so turning the verbosity up
+ * while reproducing something is a restart rather than a rebuild.
+ *
+ * It is validated against winston's own level table instead of being passed
+ * through: an unknown name is accepted by `createLogger`, matches no level any
+ * transport knows about, and leaves the app running with nothing in the files
+ * or on stdout. A typo would silence production, so an unrecognised value
+ * falls back to `info` and says so below, once there is a logger to say it on.
+ *
+ * Unset and empty are the same thing on purpose — a chart that renders
+ * `LOG_LEVEL=""` means "use the default", not "here is a bad value".
+ */
+const defaultLevel = 'info';
+const requestedLevel = (process.env.LOG_LEVEL ?? '').trim().toLowerCase();
+const isKnownLevel = Object.hasOwn(config.npm.levels, requestedLevel);
+const level = isKnownLevel ? requestedLevel : defaultLevel;
 
 /*
  * `maxsize` on its own only rolls over to a new file, so the disk still fills
@@ -16,7 +35,7 @@ const fileOptions = {
 };
 
 const logger = createLogger({
-  level: 'info',
+  level,
   format: combine(timestamp(), errors({stack: true}), json()),
   transports: [
     // Write all errors to a dedicated file
@@ -50,6 +69,17 @@ const consoleOptions =
     : {format: combine(colorize(), simple())};
 
 logger.add(new transports.Console(consoleOptions));
+
+/*
+ * Warned rather than thrown: a bad level is not worth refusing to start over,
+ * but it has to be visible — the symptom otherwise is logs that look normal at
+ * the level nobody asked for.
+ */
+if (requestedLevel !== '' && !isKnownLevel) {
+  logger
+    .child({label: 'logger'})
+    .warn(`unknown LOG_LEVEL "${requestedLevel}", logging at ${level} instead`);
+}
 
 export function getLogger(label: string): Logger {
   return logger.child({label});

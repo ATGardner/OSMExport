@@ -48,6 +48,10 @@ spec:
               value: {{ .Values.metrics.enabled | quote }}
             - name: METRICS_PORT
               value: {{ .Values.metrics.port | quote }}
+            {{- with .Values.logLevel }}
+            - name: LOG_LEVEL
+              value: {{ . | quote }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.containerPort }}
