@@ -58,15 +58,6 @@
       "groupName": "dev dependencies"
     },
     {
-      "matchDepTypes": [
-        "devDependencies"
-      ],
-      "matchUpdateTypes": [
-        "major"
-      ],
-      "groupName": "dev dependencies (major)"
-    },
-    {
       "matchManagers": [
         "dockerfile"
       ],
