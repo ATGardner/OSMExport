@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.6.0](https://github.com/ATGardner/OSMExport/compare/v2.5.0...v2.6.0) (2026-08-16)
+
+
+### Features
+
+* **observability:** add a Grafana dashboard for the exported metrics ([#552](https://github.com/ATGardner/OSMExport/issues/552)) ([4a3ac9e](https://github.com/ATGardner/OSMExport/commit/4a3ac9e6ed1b2e0e89f77fc328ef9568387fd360))
+
+
+### Bug Fixes
+
+* **osm:** send the real app version in the User-Agent ([#554](https://github.com/ATGardner/OSMExport/issues/554)) ([ec2cb76](https://github.com/ATGardner/OSMExport/commit/ec2cb7621bc187dce1e8897a08451628cb75db86))
+
 ## [2.5.0](https://github.com/ATGardner/OSMExport/compare/v2.4.0...v2.5.0) (2026-08-15)
 
 
