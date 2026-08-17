@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.8.0](https://github.com/ATGardner/OSMExport/compare/v2.7.1...v2.8.0) (2026-08-17)
+
+
+### Features
+
+* **chart:** ship the Grafana dashboard from the chart ([#567](https://github.com/ATGardner/OSMExport/issues/567)) ([319a51f](https://github.com/ATGardner/OSMExport/commit/319a51f45b3bc957ed932cd5fcc6deeba36fd6a8))
+
 ## [2.7.1](https://github.com/ATGardner/OSMExport/compare/v2.7.0...v2.7.1) (2026-08-17)
 
 
