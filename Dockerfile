@@ -2,7 +2,7 @@ FROM node:24-alpine
 
 LABEL maintainer="Noam \"Amtrak\" Gal"
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 # Pinned rather than auto-allocated: the chart's `podSecurityContext.fsGroup`
 # has to name this GID to make a mounted PersistentVolume writable, and it
