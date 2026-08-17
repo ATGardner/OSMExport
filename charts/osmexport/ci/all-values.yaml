@@ -42,6 +42,11 @@ metrics:
     scrapeTimeout: 10s
     labels:
       release: kube-prometheus-stack
+  dashboard:
+    enabled: true
+    label: grafana_dashboard
+    labelValue: "1"
+    folder: Maps
 
 # Both at once. They are independent in the templates, and enabling both is the
 # only way one render reaches every object the chart can produce. The HTTPRoute

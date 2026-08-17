@@ -1,0 +1,37 @@
+{{- if and .Values.metrics.enabled .Values.metrics.dashboard.enabled }}
+---
+{{/*
+The dashboard travels as a ConfigMap because that is the only way Grafana takes
+one from a chart it does not own: the sidecar container watches every namespace
+for ConfigMaps carrying a label, and writes what it finds into Grafana's
+provisioning directory. Nothing here talks to Grafana, and the release does not
+need to be in Grafana's namespace.
+
+Gated on metrics.enabled as well as its own switch, for the same reason the
+ServiceMonitor is: a dashboard whose every panel queries series this release is
+not exporting provisions cleanly and then shows "No data" on all of them.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "osmexport.fullname" . }}-dashboard
+  labels:
+    {{- include "osmexport.labels" . | nindent 4 }}
+    # The label the sidecar selects on — `grafana_dashboard: "1"` is the
+    # default in the grafana chart, but it is configurable there, so it is
+    # configurable here too. Quoted because the sidecar compares label values
+    # as strings and an unquoted 1 is a YAML integer.
+    {{ .Values.metrics.dashboard.label }}: {{ .Values.metrics.dashboard.labelValue | quote }}
+  {{- with .Values.metrics.dashboard.folder }}
+  annotations:
+    # Read by the sidecar in folder-annotation mode. Grafana creates the folder
+    # if it does not exist; without this the dashboard lands in whichever
+    # folder the sidecar is configured to default to.
+    grafana_folder: {{ . | quote }}
+  {{- end }}
+data:
+  # The filename matters: the sidecar names the file after this key, and
+  # Grafana's file provisioner ignores anything that is not *.json.
+  osmexport.json: |
+    {{- .Files.Get "dashboards/osmexport.json" | nindent 4 }}
+{{- end }}

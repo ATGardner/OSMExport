@@ -1,0 +1,98 @@
+---
+# The failure mode here is a ConfigMap that installs fine and is never picked
+# up — wrong label, or a `data` key the file provisioner skips — so those two
+# are asserted against the literals the Grafana sidecar actually matches on.
+# The dashboard's contents are the JSON file's business, but that it arrives as
+# parseable JSON rather than a re-indented string is this template's.
+suite: dashboard
+templates:
+  - dashboard.yaml
+release:
+  name: test-release
+tests:
+  - it: renders nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders nothing when metrics are on but the dashboard is not
+    set:
+      metrics.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # A dashboard whose every panel queries series this release does not export
+  # provisions cleanly and then shows "No data" on all of them.
+  - it: renders nothing when metrics are off, even if the dashboard is on
+    set:
+      metrics.enabled: false
+      metrics.dashboard.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: carries the sidecar label and a .json key
+    set:
+      metrics.enabled: true
+      metrics.dashboard.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: test-release-osmexport-dashboard
+      # The string "1", not the integer — the sidecar compares label values as
+      # strings, and Kubernetes rejects a non-string label value anyway.
+      - equal:
+          path: metadata.labels["grafana_dashboard"]
+          value: "1"
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: osmexport
+      # Grafana's file provisioner ignores anything not named *.json.
+      - exists:
+          path: data["osmexport.json"]
+
+  # `.Files.Get` piped through nindent is where this would break: one wrong
+  # indent level and the block scalar carries a string Grafana cannot parse.
+  # Matching the uid also catches an empty `data` value, which is still valid
+  # YAML and still a dashboard that never appears.
+  - it: embeds the dashboard as parseable JSON
+    set:
+      metrics.enabled: true
+      metrics.dashboard.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["osmexport.json"]
+          pattern: '"uid": "osmexport"'
+      - matchRegex:
+          path: data["osmexport.json"]
+          pattern: 'osmexport_http_request_duration_seconds_count'
+
+  - it: omits the folder annotation when it is empty
+    set:
+      metrics.enabled: true
+      metrics.dashboard.enabled: true
+    asserts:
+      - notExists:
+          path: metadata.annotations
+
+  - it: renders the folder annotation and a custom sidecar label when set
+    set:
+      metrics.enabled: true
+      metrics.dashboard.enabled: true
+      metrics.dashboard.label: grafana_dashboards
+      metrics.dashboard.labelValue: maps
+      metrics.dashboard.folder: Maps
+    asserts:
+      - equal:
+          path: metadata.annotations["grafana_folder"]
+          value: Maps
+      - equal:
+          path: metadata.labels["grafana_dashboards"]
+          value: maps
+      - notExists:
+          path: metadata.labels["grafana_dashboard"]
