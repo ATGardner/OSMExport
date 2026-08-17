@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.7.1](https://github.com/ATGardner/OSMExport/compare/v2.7.0...v2.7.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* **renovate:** correct matchDatasources to matchManagers for dockerfile ([#563](https://github.com/ATGardner/OSMExport/issues/563)) ([89d8dd6](https://github.com/ATGardner/OSMExport/commit/89d8dd62b6c544e069d4d037f252a8322c5ca498))
+* **renovate:** stop disabling GitHub Actions updates ([#559](https://github.com/ATGardner/OSMExport/issues/559)) ([b4237bd](https://github.com/ATGardner/OSMExport/commit/b4237bdca1a0ce31ce111a4a80c29f8f957675d1))
+
 ## [2.7.0](https://github.com/ATGardner/OSMExport/compare/v2.6.0...v2.7.0) (2026-08-16)
 
 
