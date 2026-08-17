@@ -1,16 +1,4 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>ATGardner/home//renovate-presets/default"],
-  "packageRules": [
-    {
-      "description": [
-        "The chart ships its own image, and image.tag is deliberately empty so it falls back to the chart appVersion that release-please and CI set per release.",
-        "docker:pinDigests (via config:best-practices) writes the digest into that empty tag, which renders as `repo:@sha256:...` and fails the chart unit tests; a real tag here would also fight release-please.",
-        "Nothing else reads this image from a registry, so drop it from Renovate entirely."
-      ],
-      "matchManagers": ["helm-values"],
-      "matchPackageNames": ["ghcr.io/atgardner/osmexport"],
-      "enabled": false
-    }
-  ]
+  "extends": ["local>ATGardner/home//renovate-presets/default"]
 }
