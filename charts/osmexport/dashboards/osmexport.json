@@ -23,6 +23,7 @@
       {
         "name": "job",
         "label": "Job",
+        "description": "Scrape job. Multi-select with an All option, so the dashboard works unchanged for a single pod or a fleet.",
         "type": "query",
         "datasource": {"type": "prometheus", "uid": "${datasource}"},
         "query": "label_values(osmexport_http_request_duration_seconds_count, job)",
@@ -35,6 +36,7 @@
       {
         "name": "instance",
         "label": "Instance",
+        "description": "Individual targets within the selected jobs. Multi-select with an All option; narrow it to tell one pod's behaviour from the fleet's average.",
         "type": "query",
         "datasource": {"type": "prometheus", "uid": "${datasource}"},
         "query": "label_values(osmexport_http_request_duration_seconds_count{job=~\"$job\"}, instance)",
@@ -47,6 +49,7 @@
       {
         "name": "route",
         "label": "Route",
+        "description": "Filters the Overview and HTTP rows only — the OSM API, export and runtime metrics carry no route label and ignore this.",
         "type": "query",
         "datasource": {"type": "prometheus", "uid": "${datasource}"},
         "query": "label_values(osmexport_http_request_duration_seconds_count{job=~\"$job\", instance=~\"$instance\"}, route)",
@@ -63,6 +66,7 @@
       "id": 1,
       "type": "row",
       "title": "Overview",
+      "description": "Is it serving, how fast, and how much of the traffic is failing.",
       "collapsed": false,
       "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
       "panels": []
@@ -271,6 +275,7 @@
       "id": 10,
       "type": "row",
       "title": "HTTP",
+      "description": "Rate and latency by route and status, plus the full duration histogram as a heatmap. Traffic here is bimodal — a 400 returns instantly, a large export takes minutes — which the quantiles alone hide.",
       "collapsed": false,
       "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
       "panels": []
@@ -424,6 +429,7 @@
       "id": 20,
       "type": "row",
       "title": "OSM API (upstream)",
+      "description": "Outbound call rate split by outcome, with `not_found` kept apart from `error` so a bad link cannot look like an upstream outage, and the share of request time spent waiting on OSM. That ratio is the fastest way to tell \"the OSM API is slow\" from \"we are\"; event loop lag in the Node runtime row is the confirmation.",
       "collapsed": false,
       "gridPos": {"h": 1, "w": 24, "x": 0, "y": 22},
       "panels": []
@@ -545,6 +551,7 @@
       "id": 30,
       "type": "row",
       "title": "Exports",
+      "description": "Delivered documents by format, their sizes, and the coordinate count of the relations behind them. KMZ running level with KML for the same relation means compression stopped happening.",
       "collapsed": false,
       "gridPos": {"h": 1, "w": 24, "x": 0, "y": 31},
       "panels": []
@@ -661,6 +668,7 @@
       "id": 40,
       "type": "row",
       "title": "Node runtime",
+      "description": "CPU, memory, event loop lag, GC pauses, handles and file descriptors, from `collectDefaultMetrics`.",
       "collapsed": false,
       "gridPos": {"h": 1, "w": 24, "x": 0, "y": 40},
       "panels": []
