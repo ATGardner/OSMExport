@@ -44,8 +44,8 @@
       "groupName": "dev dependencies"
     },
     {
-      "matchDatasources": [
-        "docker"
+      "matchManagers": [
+        "dockerfile"
       ],
       "matchUpdateTypes": [
         "digest",
