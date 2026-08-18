@@ -1,3 +1,4 @@
+import type {Server} from 'node:http';
 import express, {type RequestHandler} from 'express';
 import {Histogram, Registry, collectDefaultMetrics} from 'prom-client';
 import {NotFoundError} from './errors.ts';
@@ -117,6 +118,12 @@ export function observeExportSize(format: string, body: string | Buffer): void {
 }
 
 /*
+ * `null` rather than left undeclared: this is the one piece of module state set
+ * from inside a function, and the disabled path never sets it.
+ */
+let metricsServer: Server | null = null;
+
+/*
  * Served on its own port, not as a route on the main app. The chart's Ingress
  * and HTTPRoute both send every path to the `http` port, so a `/metrics` route
  * there would be published to the internet along with the exporter.
@@ -147,7 +154,17 @@ export function startMetricsServer(): void {
       next(error);
     }
   });
-  metricsApp.listen(port, () => {
+  metricsServer = metricsApp.listen(port, () => {
     logger.info(`metrics listening on port ${port}`);
   });
+}
+
+/*
+ * Kept for the shutdown path rather than returned to it: a listening server is
+ * a handle that holds the event loop open, so leaving this one running on
+ * SIGTERM would make an otherwise idle process sit out the whole grace period
+ * and then be killed.
+ */
+export function stopMetricsServer(): void {
+  metricsServer?.close();
 }

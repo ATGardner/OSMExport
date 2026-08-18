@@ -1,8 +1,13 @@
 import express, {type ErrorRequestHandler, type RequestHandler} from 'express';
 import slug from 'slug';
 import {BadRequestError, NotFoundError} from './errors.ts';
+import {beginDraining, createHealthRouter, ensureDataDirs} from './health.ts';
 import {getLogger} from './logger.ts';
-import {metricsMiddleware, startMetricsServer} from './metrics.ts';
+import {
+  metricsMiddleware,
+  startMetricsServer,
+  stopMetricsServer,
+} from './metrics.ts';
 import {getRelationGpx} from './osm2gpx.ts';
 import {getRelationKml, getRelationKmz} from './osm2kml.ts';
 import type {RelationExporter} from './relation.ts';
@@ -93,6 +98,13 @@ const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
  *http://localhost:3000/osm2kml?relationId=282071
  *http://localhost:3000/osm2kmz?relationId=282071
  */
+/*
+ * Ahead of metricsMiddleware, unlike every other route: the kubelet probes
+ * these every few seconds for the life of the pod, and counting them would
+ * bury the API's own throughput under probe traffic in the request histogram.
+ */
+app.use(createHealthRouter());
+
 // Ahead of the routes, so unmatched paths and error responses are counted too.
 app.use(metricsMiddleware);
 app.get('/osm2gpx', createHandler('gpx', getRelationGpx));
@@ -100,9 +112,43 @@ app.get('/osm2kml', createHandler('kml', getRelationKml));
 app.get('/osm2kmz', createHandler('kmz', getRelationKmz));
 app.use(errorHandler);
 
+/*
+ * Before the listener, so a volume the pod cannot write to is already failing
+ * readiness by the time the first probe arrives, rather than being discovered
+ * as log lines that silently never landed.
+ */
+await ensureDataDirs();
+
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
+const server = app.listen(port, () => {
   logger.info(`OSMExport listening on port ${port}!`);
 });
 
 startMetricsServer();
+
+/*
+ * One readiness period at the chart's default, which is what the drain flag
+ * needs to be seen: the kubelet keeps routing to this pod until its own probe
+ * fails and the endpoints controller catches up, so closing the listener the
+ * instant SIGTERM lands would refuse requests that were already on their way.
+ */
+const DRAIN_MS = 10_000;
+
+/*
+ * Nothing here calls process.exit. With both listeners closed an idle process
+ * runs out of handles and ends on its own, while one still building a large
+ * export keeps going until it has answered or the grace period expires — the
+ * better of the two outcomes for a caller several minutes into a download.
+ */
+process.once('SIGTERM', () => {
+  logger.info('SIGTERM received, draining');
+  beginDraining();
+  setTimeout(() => {
+    server.close(() => {
+      logger.info('API listener closed');
+    });
+    // Keep-alive sockets sitting idle would otherwise hold `close` open.
+    server.closeIdleConnections();
+    stopMetricsServer();
+  }, DRAIN_MS).unref();
+});

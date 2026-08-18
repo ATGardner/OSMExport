@@ -22,6 +22,7 @@
     "index.ts",
     "commandLine.ts",
     "src/**/*.ts",
+    "test/**/*.ts",
     "types/**/*.d.ts"
   ]
 }

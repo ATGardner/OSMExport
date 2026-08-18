@@ -21,7 +21,7 @@ permissions: {}
 
 jobs:
   verify:
-    name: Typecheck and lint
+    name: Typecheck, lint and test
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -38,6 +38,12 @@ jobs:
       - run: npm run typecheck
 
       - run: npm run lint:ci
+
+      # node:test, so this needs no runner in devDependencies. The health
+      # module is the only thing under test: it is the one piece of the app
+      # whose contract is with the kubelet rather than with a caller, and a
+      # readiness check that answers wrongly takes the pod out of the Service.
+      - run: npm test
 
   # Release-please's branch only bumps the version and rewrites the changelog,
   # and it is force-pushed on every merge to main — an image per force-push, and

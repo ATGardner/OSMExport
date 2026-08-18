@@ -293,11 +293,39 @@ tests:
       - notExists:
           path: spec.template.spec.securityContext
 
-  - it: probes the named port so it tracks containerPort
+  # The paths are a contract with src/health.ts, and the port name with the
+  # ports block above — a probe pointing at a path the app does not serve fails
+  # closed, restarting a healthy pod on a loop. By name, not number, so both
+  # keep tracking containerPort.
+  - it: probes the app's health endpoints over HTTP
     asserts:
       - equal:
-          path: spec.template.spec.containers[0].livenessProbe.tcpSocket.port
-          value: http
+          path: spec.template.spec.containers[0].livenessProbe.httpGet
+          value:
+            path: /healthz
+            port: http
       - equal:
-          path: spec.template.spec.containers[0].readinessProbe.tcpSocket.port
-          value: http
+          path: spec.template.spec.containers[0].readinessProbe.httpGet
+          value:
+            path: /readyz
+            port: http
+
+  # Building a large export occupies the event loop these handlers share, so
+  # the slack is the point: at 1s — the kubelet's default, which is what
+  # omitting timeoutSeconds would mean — a big relation would restart the pod
+  # serving it.
+  - it: keeps the probe timeouts slack enough for a running export
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.timeoutSeconds
+          value: 5
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.failureThreshold
+          value: 3
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.timeoutSeconds
+          value: 5
+      - equal:
+          path:
+            spec.template.spec.containers[0].readinessProbe.failureThreshold
+          value: 3

@@ -33,6 +33,25 @@ export default tseslint.config(
       globals: {...globals.node},
     },
     rules: {
+      /*
+       * `describe` and `it` return a promise that resolves when the test
+       * finishes, and node:test's own API expects you to drop it — awaiting
+       * every one would be noise. Scoped to those three imported from
+       * node:test, so a genuinely floating promise anywhere else still fails.
+       */
+      '@typescript-eslint/no-floating-promises': [
+        'error',
+        {
+          allowForKnownSafeCalls: [
+            {
+              from: 'package',
+              package: 'node:test',
+              name: ['describe', 'it', 'test'],
+            },
+          ],
+        },
+      ],
+
       // Fixable - errors
       'one-var': ['error', {const: 'never', let: 'never'}],
       'dot-notation': 'error',

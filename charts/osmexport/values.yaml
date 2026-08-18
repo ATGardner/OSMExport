@@ -153,17 +153,41 @@ podSecurityContext:
 
 resources: {}
 
-# There is no health endpoint, so both probes check the listening socket.
+# Real HTTP probes, which is what makes them depend on the event loop: the
+# tcpSocket probes these replace were answered by the kernel's accept queue and
+# passed even when nothing in the process could run. Building a large export
+# occupies that same loop for minutes, so the timeouts and thresholds here are
+# deliberately slack — liveness needs roughly 75s of unresponsiveness before it
+# restarts the pod, and a restart takes the in-flight export with it.
+#
+# /healthz checks nothing but its own ability to answer, on purpose: a probe
+# that failed on an unwritable volume or an unreachable OSM API would restart a
+# pod that a restart cannot fix.
 livenessProbe:
-  tcpSocket:
+  httpGet:
+    path: /healthz
     port: http
   initialDelaySeconds: 10
   periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 3
+# /readyz additionally fails while the pod is draining after SIGTERM, and when
+# the log directory is not writable — the fsGroup mistake described above then
+# shows up as a pod that never goes ready, instead of as log lines that
+# silently never landed.
+#
+# Deliberately not tied to whether an export is in flight: this chart runs a
+# single replica, and going unready for the minutes a large relation takes
+# would pull it out of the Service, failing every other caller to report that
+# one request is slow.
 readinessProbe:
-  tcpSocket:
+  httpGet:
+    path: /readyz
     port: http
   initialDelaySeconds: 5
   periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
 
 nodeSelector: {}
 tolerations: []
