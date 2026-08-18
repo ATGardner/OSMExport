@@ -146,7 +146,20 @@ jobs:
       # catches a misplaced field nobody thought to write an assertion for.
       - name: Validate rendered manifests
         env:
-          CRD_SCHEMAS: https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
+          # Pinned to a commit, for the same reason helm and kubeconform are
+          # pinned above: `main` is someone else's branch, and a suite whose
+          # result changes when they push is not a suite. The catalog's tags
+          # are abandoned — v0.0.12 is from 2023 and predates the Gateway API
+          # v1 schemas entirely — so a commit is the only ref worth using.
+          CRD_SCHEMAS: https://raw.githubusercontent.com/datreeio/CRDs-catalog/52b0261318acc7dd0b66e032759b1f218216b980/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
+          # The two ends of the range the chart claims to support: the floor
+          # from Chart.yaml's kubeVersion, and current stable. Only the ends
+          # are worth running. These schemas grow by addition, so a field the
+          # floor accepts every later version accepts too, and a kind still
+          # present at the top was present all the way down — the versions in
+          # between are interpolation, and a matrix over them buys nothing.
+          KUBE_FLOOR: 1.25.0
+          KUBE_LATEST: 1.34.0
         run: |
           set -euo pipefail
 
@@ -154,17 +167,32 @@ jobs:
           # skip, so anything CRD-backed the chart grows later — an HTTPRoute,
           # say — needs a source beyond the built-in Kubernetes schemas. The
           # `default` location has to be repeated once another is named.
+          #
+          # Passing the version to `helm template` too, not just kubeconform:
+          # that is what makes the floor run check Chart.yaml's kubeVersion
+          # constraint, and what would exercise any `.Capabilities` branch the
+          # templates grow later.
           validate() {
-            helm template ci charts/osmexport "$@" \
-              | kubeconform -strict -summary -kubernetes-version 1.34.0 \
+            version=$1
+            shift
+            helm template ci charts/osmexport --kube-version "$version" "$@" \
+              | kubeconform -strict -summary -kubernetes-version "$version" \
                   -schema-location default \
                   -schema-location "$CRD_SCHEMAS" -
           }
 
           # values.yaml leaves most optional blocks empty, so the default
           # render never reaches them. ci/all-values.yaml sets all of them.
-          validate
-          validate --values charts/osmexport/ci/all-values.yaml
+          #
+          # The CRD schemas are not keyed by Kubernetes version, so HTTPRoute
+          # and ServiceMonitor validate identically in both passes. Only the
+          # built-in kinds actually differ between the two.
+          for version in "$KUBE_FLOOR" "$KUBE_LATEST"; do
+            echo "::group::kubernetes $version"
+            validate "$version"
+            validate "$version" --values charts/osmexport/ci/all-values.yaml
+            echo "::endgroup::"
+          done
 
       # Schemas only say a field is allowed where it landed, never that it
       # landed where it was meant to. These assert the values themselves: the

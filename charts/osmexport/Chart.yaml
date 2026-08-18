@@ -3,6 +3,17 @@ apiVersion: v2
 name: osmexport
 version: 0.1.0
 appVersion: "latest"
+# The oldest Kubernetes this chart is tested against, and the floor the
+# kubeconform pass in CI validates at. 1.25 is where the Gateway API reached
+# v1, which `httpRoute` renders — below it that template cannot work at all.
+# Everything else here has been GA far longer.
+#
+# `-0` is the conventional suffix on a chart kubeVersion: semver
+# implementations that exclude prereleases will not match a vendor version
+# string like `1.30.4-gke.1234` without it. The helm 4 pinned in CI matches
+# those either way, so this is insurance for consumers on older helm rather
+# than something this repo's own CI exercises.
+kubeVersion: ">=1.25.0-0"
 description: Exports OpenStreetMap relations as GPX files
 home: https://github.com/ATGardner/OSMExport
 sources:
