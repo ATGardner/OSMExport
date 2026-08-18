@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.0](https://github.com/ATGardner/OSMExport/compare/v2.8.0...v2.9.0) (2026-08-18)
+
+
+### Features
+
+* add /healthz and /readyz probes with a graceful drain ([#570](https://github.com/ATGardner/OSMExport/issues/570)) ([000b6e8](https://github.com/ATGardner/OSMExport/commit/000b6e88d97be3d957519389abace0685b3a8a6f))
+
 ## [2.8.0](https://github.com/ATGardner/OSMExport/compare/v2.7.1...v2.8.0) (2026-08-17)
 
 
