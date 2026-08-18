@@ -21,7 +21,7 @@ permissions: {}
 
 jobs:
   verify:
-    name: Typecheck and lint
+    name: Typecheck, lint and test
     runs-on: ubuntu-latest
     permissions:
       contents: read
