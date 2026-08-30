@@ -165,7 +165,7 @@ jobs:
           # present at the top was present all the way down — the versions in
           # between are interpolation, and a matrix over them buys nothing.
           KUBE_FLOOR: 1.25.0
-          KUBE_LATEST: 1.36.4
+          KUBE_LATEST: 1.37.0
         run: |
           set -euo pipefail
 
