@@ -34,7 +34,7 @@
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-import-x": "4.17.1",
     "eslint-plugin-prettier": "5.5.6",
-    "globals": "17.11.0",
+    "globals": "17.12.0",
     "prettier": "3.9.6",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-eslint": "8.69.0"
