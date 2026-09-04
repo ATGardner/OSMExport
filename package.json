@@ -28,7 +28,7 @@
     "@types/universal-analytics": "0.4.8",
     "@types/yargs": "17.0.35",
     "@types/yazl": "3.3.1",
-    "@typescript-eslint/eslint-plugin": "8.68.0",
+    "@typescript-eslint/eslint-plugin": "8.69.0",
     "@typescript/native": "npm:typescript@7.0.2",
     "eslint": "10.9.1",
     "eslint-config-prettier": "10.1.8",
@@ -37,7 +37,7 @@
     "globals": "17.11.0",
     "prettier": "3.9.6",
     "typescript": "npm:@typescript/typescript6@6.0.2",
-    "typescript-eslint": "8.68.0"
+    "typescript-eslint": "8.69.0"
   },
   "dependencies": {
     "@placemarkio/tokml": "0.3.9",
