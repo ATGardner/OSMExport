@@ -60,12 +60,27 @@ async function describeFailure(response: Response): Promise<string> {
 }
 
 /*
+ * The OSM JSON document `/full` answers with: the relation, its member ways
+ * and their nodes, as one flat `elements` array. Only the converter reads
+ * inside an element, so the element itself stays unmodelled here.
+ */
+export interface OsmJson {
+  version?: number;
+  generator?: string;
+  elements: Record<string, unknown>[];
+}
+
+/*
  * `kind` is what labels the metric — the path embeds the relation id, so using
  * it would mint a new series per relation exported. `subject` is the opposite:
  * it names the specific thing that was missing, and is only ever read by a
  * human.
  */
-function osmApiRequest(kind: string, path: string, subject: string) {
+function osmApiRequest<T>(
+  kind: string,
+  path: string,
+  subject: string,
+): Promise<T> {
   return observeOsmApiQuery(kind, async () => {
     const result = await fetch(`${API_BASE}${path}`, {
       /*
@@ -90,23 +105,27 @@ function osmApiRequest(kind: string, path: string, subject: string) {
       throw new Error(await describeFailure(result));
     }
 
-    return result.json();
+    /*
+     * `Response.json()` is typed `unknown`: nothing has validated this body,
+     * and the cast is where we accept it as the shape the caller asked for.
+     */
+    return result.json() as Promise<T>;
   });
 }
 
-export function fetchRelation(relationId: number) {
+export function fetchRelation(relationId: number): Promise<OsmJson> {
   /*
    * `/full` returns the relation, its member ways, and every node of those
    * ways — precisely what the Overpass `(._;>;)` recursion this replaces
-   * produced, in the same OSM JSON shape `osmtogeojson` consumes, and with the
-   * `meta` attributes the export needs for its timestamp.
+   * produced, in the same OSM JSON shape `osm2geojson-lite` consumes, and
+   * with the `meta` attributes the export needs for its timestamp.
    *
    * Overpass was answering this with 504s
    * (`Dispatcher_Client::request_read_and_idx::timeout`): its public instance
    * allows two concurrent slots per IP and the query never got one. The
    * editing API has no such queue, and serves the same relation in seconds.
    */
-  return osmApiRequest(
+  return osmApiRequest<OsmJson>(
     'relation',
     `/relation/${relationId}/full.json`,
     `Relation ${relationId}`,

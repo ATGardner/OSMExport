@@ -132,6 +132,26 @@ export function waysOf(geometry: LineString | MultiLineString): Position[][] {
     : geometry.coordinates;
 }
 
+/*
+ * Reversing a route means reversing its points, not just its containers. Every
+ * multi-segment relation is a `MultiLineString` — and osm2geojson-lite returns
+ * one even for a contiguous route — so both levels have to flip: the segments
+ * walk back to front, and so do the points inside each. Reversing only the
+ * outer array reorders the segments while leaving each one running forwards,
+ * which walks the route in neither direction.
+ */
+export function reverseGeometry(geometry: LineString | MultiLineString): void {
+  if (geometry.type === 'LineString') {
+    geometry.coordinates.reverse();
+    return;
+  }
+
+  geometry.coordinates.reverse();
+  for (const way of geometry.coordinates) {
+    way.reverse();
+  }
+}
+
 function createMarkerFeature(
   lat: number,
   lon: number,
@@ -200,7 +220,7 @@ export async function getRelationData(
   }
 
   if (reverse) {
-    relation.geometry.coordinates.reverse();
+    reverseGeometry(relation.geometry);
   }
 
   /*
