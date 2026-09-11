@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.1](https://github.com/ATGardner/OSMExport/compare/v2.9.0...v2.9.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* replace osmtogeojson with osm2geojson-lite ([#594](https://github.com/ATGardner/OSMExport/issues/594)) ([478796e](https://github.com/ATGardner/OSMExport/commit/478796e404128478d18a4538cbdc436663fccd02))
+
 ## [2.9.0](https://github.com/ATGardner/OSMExport/compare/v2.8.0...v2.9.0) (2026-08-18)
 
 
