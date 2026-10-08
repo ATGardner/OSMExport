@@ -157,7 +157,7 @@ jobs:
           # result changes when they push is not a suite. The catalog's tags
           # are abandoned — v0.0.12 is from 2023 and predates the Gateway API
           # v1 schemas entirely — so a commit is the only ref worth using.
-          CRD_SCHEMAS: https://raw.githubusercontent.com/datreeio/CRDs-catalog/fd90051867733c60d32d16450556e9cd18459aef/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
+          CRD_SCHEMAS: https://raw.githubusercontent.com/datreeio/CRDs-catalog/63669a570e231d4f1f8396d229a1de512bcf0a34/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
           # The two ends of the range the chart claims to support: the floor
           # from Chart.yaml's kubeVersion, and current stable. Only the ends
           # are worth running. These schemas grow by addition, so a field the
