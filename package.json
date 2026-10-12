@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@placemarkio/tokml": "0.3.9",
-    "express": "5.2.1",
+    "express": "5.3.0",
     "geodesy": "2.4.0",
     "gpx-builder": "6.0.0",
     "moment": "2.31.0",
