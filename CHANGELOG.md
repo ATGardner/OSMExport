@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.9.2](https://github.com/ATGardner/OSMExport/compare/v2.9.1...v2.9.2) (2026-10-23)
+
+
+### Bug Fixes
+
+* **deps:** move runtime to Node 26 to match @types/node ([#620](https://github.com/ATGardner/OSMExport/issues/620)) ([4df48d6](https://github.com/ATGardner/OSMExport/commit/4df48d69717333ce3393ce0e4f66a00198e9d114))
+* **deps:** update dependency @placemarkio/tokml to v0.4.0 ([#635](https://github.com/ATGardner/OSMExport/issues/635)) ([4022911](https://github.com/ATGardner/OSMExport/commit/40229113b625878311436507f4eb1d646b5492b1))
+* **deps:** update dependency express to v5.3.0 ([#627](https://github.com/ATGardner/OSMExport/issues/627)) ([4dbd991](https://github.com/ATGardner/OSMExport/commit/4dbd99160a8e6a5a032833a8acb4c7ce60dab340))
+* **deps:** update dependency moment to v2.31.0 ([#599](https://github.com/ATGardner/OSMExport/issues/599)) ([53ea17a](https://github.com/ATGardner/OSMExport/commit/53ea17a959f7412a843aac3bc1de46269f032009))
+* **deps:** update dependency yargs to v18.2.0 ([#608](https://github.com/ATGardner/OSMExport/issues/608)) ([b3bc042](https://github.com/ATGardner/OSMExport/commit/b3bc04211fc5462fe1761cf11fb4967b430cdbeb))
+
 ## [2.9.1](https://github.com/ATGardner/OSMExport/compare/v2.9.0...v2.9.1) (2026-09-11)
 
 
