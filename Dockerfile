@@ -1,4 +1,4 @@
-FROM node:26-alpine@sha256:65fb44a19eb983bc475aebef8ca3416da172e5b7b0e52418cca100997959ca6e
+FROM node:26-alpine@sha256:d431b1d60cd8de74dc66d271c236f66227998c308e011e60faa9c60dc4d37382
 
 LABEL maintainer="Noam \"Amtrak\" Gal"
 
