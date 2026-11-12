@@ -20,10 +20,21 @@ export async function getFullRelation(
    * `uninterestingTags: () => true` produced. Unfiltered, `renderTagged` plus
    * `excludeWay: false` add the tagged member ways back as their own features.
    */
-  return osm2geojson(
+  const result = osm2geojson(
     osmJson,
     filter
       ? {completeFeature: true}
       : {completeFeature: true, renderTagged: true, excludeWay: false},
   );
+  /*
+   * The return type also covers `elementId` (a single Feature) and the
+   * non-`completeFeature` modes. With the options above it is always a
+   * FeatureCollection, so anything else means the library changed behaviour.
+   */
+  if (result?.type !== 'FeatureCollection') {
+    throw new Error(
+      `Expected a FeatureCollection for relation '${relationId}', got '${result?.type}'`,
+    );
+  }
+  return result;
 }
