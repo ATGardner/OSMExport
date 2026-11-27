@@ -43,7 +43,7 @@
     "@placemarkio/tokml": "0.4.0",
     "express": "5.3.0",
     "geodesy": "2.4.0",
-    "gpx-builder": "6.0.0",
+    "gpx-builder": "6.1.0",
     "moment": "2.31.0",
     "osm2geojson-lite": "3.0.0",
     "prom-client": "15.1.3",
